@@ -34,12 +34,13 @@ dead_letter_queue = "dramax-chain-events-dlq"
 [vars]
 ENV = "production"
 ALLOWED_ORIGIN = "https://m.dramax.ai,https://admin.dramax.ai,https://dramax-mobile.pages.dev,https://dramax-admin.pages.dev"  # 逗号分隔多域（生产域 + 当前 pages.dev 临时域；dramax.ai 接入 CF 后可去掉 pages.dev）
-ADMIN_OWNER_WALLET = ""  # owner 钱包地址（0x...，小写）；Admin 钱包登录首登自举建档
+ADMIN_OWNER_WALLET = "0xb7940a57d5fb0288776f95047467e3d72eed9e09"  # owner 钱包地址（小写）；Admin 钱包登录首登自举建档
 TURNSTILE_HOSTNAMES = "m.dramax.ai,admin.dramax.ai,dramax-mobile.pages.dev,dramax-admin.pages.dev,localhost,127.0.0.1"  # siteverify hostname 白名单
-BLOCKED_COUNTRIES = "CN"  # 区域屏蔽（request.cf.country 边缘判定，返回 451）
+BLOCKED_COUNTRIES = "CN"  # 区域屏蔽（request.cf.country 边缘判定，返回 451）；/internal/* 豁免（token 鉴权的服务器间调用）
+PLATFORM_ADDRESSES = "0xb7940a57d5fb0288776f95047467e3d72eed9e09"  # 平台归集地址池（用户充值 USDT 落此地址）
 
 # ─── Secrets（wrangler secret put 注入，禁止入库） ───
-# JWT_SECRET / BSC_RPC_URL / ADMIN_INITIAL_PASSWORD / TURNSTILE_SECRET
+# JWT_SECRET / BSC_RPC_URL / ADMIN_INITIAL_PASSWORD / TURNSTILE_SECRET / INTERNAL_CRON_TOKEN（launchd curl /internal/cron 触发令牌）
 
 # ═══ testnet 环境（BSC testnet 97 演示）：wrangler deploy -e testnet ═══
 [env.testnet]

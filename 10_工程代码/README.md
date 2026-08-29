@@ -76,13 +76,15 @@ nonce put 失败导致登录 500 → nonce/支付意图/扫描游标全部改落
 构建注入：`NEXT_PUBLIC_API_BASE=https://dramax-api.dappweb.workers.dev npm run build`（Pages 部署 out/）。
 
 **已知限制**：
-1. **Cron 未启用**：账号免费版 cron 配额 19/5 超限（存量 grandfathered，任何新增/修改被拒）。indexer 暂不自动运行——
-   恢复路径：升级 Workers Paid（$5/月）后解开 wrangler.toml [triggers] 注释重部署；或 Mac launchd 定时触发。
+1. **Cron 未启用 → launchd 替代（✅ 2026-08-30）**：账号免费版 cron 配额 19/5 超限（存量 grandfathered，任何新增/修改被拒）。
+   Indexer 改由 Mac launchd 每分钟 curl `POST /internal/cron`（`x-internal-token` = INTERNAL_CRON_TOKEN secret，未配置时端点 503 关闭；
+   /internal/* 豁免区域屏蔽）。加载：`launchctl load ~/Library/LaunchAgents/com.dramax.indexer.plist`（会话内 bootstrap 报 error 5，需用户终端执行）。
+   令牌在 ~/.dramax-indexer-token（600），日志 /tmp/dramax-indexer.log；大陆直连 workers.dev 被墙时在 plist 的
+   DRAMAX_INDEXER_PROXY 填代理端口。Workers Paid（$5/月）后可改回原生 Cron（解开 [triggers] 注释）。
 2. **自定义域未绑**：dramax.ai 域名未接入此 CF 账号（现有 zone：dappweb.ai 等 9 个）。临时用 pages.dev 域，
    ALLOWED_ORIGIN/TURNSTILE_HOSTNAMES 已包含 pages.dev；域名接入后加 CNAME 指向 Pages 项目即可。
-3. **BLOCKED_COUNTRIES = "CN"**：大陆访问返回 451（合规设计）；自测需挂代理。
-4. PLATFORM_ADDRESSES（平台归集地址池）未配置——支付意图端点会 503，配置后即通。
-   ADMIN_OWNER_WALLET 待填 owner 钱包地址（vars）。
+3. **BLOCKED_COUNTRIES = "CN"**：大陆访问返回 451（合规设计）；自测需挂代理（/internal/* 豁免）。
+4. ~~PLATFORM_ADDRESSES 未配置~~ ✅ 已配置 0xb7940a57…9e09（owner 钱包，用户充值 USDT 归集）；ADMIN_OWNER_WALLET 同地址已配。
 
 ## BSC Testnet 演示环境（✅ 2026-08-29 已部署，chainId 97）
 

@@ -26,6 +26,7 @@ export interface Env {
   CHAIN_ID?: string;          // 链覆盖（testnet=97）；缺省用 shared.CHAIN.ID(56)
   USDT_CONTRACT?: string;     // USDT 合约覆盖（testnet 0x3376…6C7）；缺省用 shared.CHAIN.USDT
   CHAIN_CONFIRMATIONS?: string; // 确认数覆盖；缺省 15
+  INTERNAL_CRON_TOKEN?: string; // /internal/cron 触发令牌（wrangler secret put；未配置=端点 503 关闭）
 }
 
 // 链参数：环境变量覆盖 > shared 单一事实源（mainnet BSC 56 / testnet 97）
@@ -54,10 +55,13 @@ const app = new Hono<{ Bindings: Env }>();
 // 代码级拦截基于 request.cf.country（Cloudflare 边缘注入，不可伪造）；
 // WAF 托管规则为账户级配置，两者叠加。451 = Unavailable For Legal Reasons。
 app.use("*", async (c, next) => {
-  const blocked = (c.env.BLOCKED_COUNTRIES ?? "CN").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
-  const country = (c.req.raw.cf as { country?: string } | undefined)?.country?.toUpperCase();
-  if (country && blocked.includes(country)) {
-    return c.json({ error: "service unavailable in your region" }, 451);
+  // /internal/* 为服务器间触发端点（INTERNAL_CRON_TOKEN 鉴权），不受区域屏蔽限制（launchd 从本机 curl）
+  if (!c.req.path.startsWith("/internal/")) {
+    const blocked = (c.env.BLOCKED_COUNTRIES ?? "CN").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+    const country = (c.req.raw.cf as { country?: string } | undefined)?.country?.toUpperCase();
+    if (country && blocked.includes(country)) {
+      return c.json({ error: "service unavailable in your region" }, 451);
+    }
   }
   await next();
 });
@@ -233,66 +237,80 @@ app.get("/holdings", async (c) => {
 // ─── Admin 挂载（必须在 trading 之前：trading 的 use("*") 会拦截后续挂载的所有路径） ───
 app.route("/admin", admin);
 
+// ─── 内部触发端点：launchd curl 定时跑 indexer（替代被配额拒的 Workers Cron） ───
+// 鉴权：x-internal-token 头 = INTERNAL_CRON_TOKEN secret；未配置 token 时端点 503 关闭
+// 必须在 trading 挂载之前注册（同 admin 的 use("*") 拦截问题）
+app.post("/internal/cron", async (c) => {
+  const expect = c.env.INTERNAL_CRON_TOKEN;
+  if (!expect) return c.json({ error: "internal cron disabled" }, 503);
+  if ((c.req.header("x-internal-token") ?? "") !== expect) return c.json({ error: "unauthorized" }, 401);
+  await runCronOnce(c.env);
+  return c.json({ ok: true, ts: Math.floor(Date.now() / 1000) });
+});
+
 // ─── 交易链路（卖出/挂单/撮合/积分/团队/账本） ───
 app.route("/", trading);
 
 // ─── Cron：Indexer 增量扫描 / 超时扫描 ───
+// cron 逻辑抽为独立函数：scheduled（Workers Cron）与 POST /internal/cron（launchd curl 触发）共用
+async function runCronOnce(env: Env): Promise<void> {
+  const latestHex = await rpc<string>(env.BSC_RPC_URL, "eth_blockNumber", []);
+  const latest = parseInt(latestHex, 16);
+  let last = Number((await kvGet(env.DB, "scan:lastBlock")) ?? latest - chainOf(env).confirmations - 1);
+  const from = last + 1;
+  const to = Math.min(from + 499, latest - chainOf(env).confirmations); // 安全深度内增量
+  if (from <= to) {
+    const platform = (env.PLATFORM_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    if (!platform.length) {
+      // PLATFORM_ADDRESSES 未配置：跳过链上扫描，仅做超时/到期扫描（防止 getLogs 空 topics 匹配全量 USDT 转账）
+      await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();
+      await kvPut(env.DB, "scan:lastBlock", String(latest - chainOf(env).confirmations));
+      return;
+    }
+    const logs: any[] = await rpc(env.BSC_RPC_URL, "eth_getLogs", [
+      {
+        address: chainOf(env).usdt,
+        topics: [TRANSFER_TOPIC, null, platform.map(padAddr)],
+        fromBlock: "0x" + from.toString(16),
+        toBlock: "0x" + to.toString(16),
+      },
+    ]);
+    for (const log of logs) {
+      const cents = hexToCents(log.data);
+      const saltAmount = (cents / 100).toFixed(2);
+      // 盐值反查订单（方案 A）；无匹配则记录为孤儿事件（运营审查）
+      const intent = await env.DB.prepare(
+        `SELECT id FROM payment_intents WHERE salt_amount=? AND status='PENDING' AND expires_at > datetime('now')`
+      ).bind(saltAmount).first<{ id: string }>();
+      const ev: ChainEvent = {
+        txHash: log.transactionHash, logIndex: log.logIndex,
+        blockNo: parseInt(log.blockNumber, 16), blockHash: log.blockHash,
+        from: log.topics[1].slice(-40).toLowerCase(), to: log.topics[2].slice(-40).toLowerCase(),
+        cents, intentId: intent?.id ?? null,
+      };
+      // INSERT OR IGNORE = (tx_hash, log_index) 幂等
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO chain_events (tx_hash, log_index, block_no, block_hash, contract_addr, from_addr, to_addr, amount, status, intent_id) VALUES (?,?,?,?,?,?,?,?, 'PENDING', ?)`
+      ).bind(ev.txHash, ev.logIndex, ev.blockNo, ev.blockHash, chainOf(env).usdt, ev.from, ev.to, (ev.cents / 100).toFixed(2), ev.intentId).run();
+      await env.EVENTS.send(ev);
+    }
+    last = to;
+  }
+  await kvPut(env.DB, "scan:lastBlock", String(last));
+
+  // 支付广播超时（15 分钟）：PAYING → EXPIRED（原 60min txid 模式已废除）
+  await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();
+  // 到期扫描：HOLDING 满 7 天 → MATURED
+  await env.DB.prepare(
+    `UPDATE holdings SET state='MATURED', matured_at=datetime('now') WHERE state='HOLDING' AND created_at <= datetime('now', '-7 days')`
+  ).run();
+}
+
 export default {
   fetch: app.fetch,
 
   async scheduled(_evt: ScheduledController, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil((async () => {
-      const latestHex = await rpc<string>(env.BSC_RPC_URL, "eth_blockNumber", []);
-      const latest = parseInt(latestHex, 16);
-      let last = Number((await kvGet(env.DB, "scan:lastBlock")) ?? latest - chainOf(env).confirmations - 1);
-      const from = last + 1;
-      const to = Math.min(from + 499, latest - chainOf(env).confirmations); // 安全深度内增量
-      if (from <= to) {
-        const platform = (env.PLATFORM_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-        if (!platform.length) {
-          // PLATFORM_ADDRESSES 未配置：跳过链上扫描，仅做超时/到期扫描（防止 getLogs 空 topics 匹配全量 USDT 转账）
-          await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();
-          await kvPut(env.DB, "scan:lastBlock", String(latest - chainOf(env).confirmations));
-          return;
-        }
-        const logs: any[] = await rpc(env.BSC_RPC_URL, "eth_getLogs", [
-          {
-            address: chainOf(env).usdt,
-            topics: [TRANSFER_TOPIC, null, platform.map(padAddr)],
-            fromBlock: "0x" + from.toString(16),
-            toBlock: "0x" + to.toString(16),
-          },
-        ]);
-        for (const log of logs) {
-          const cents = hexToCents(log.data);
-          const saltAmount = (cents / 100).toFixed(2);
-          // 盐值反查订单（方案 A）；无匹配则记录为孤儿事件（运营审查）
-          const intent = await env.DB.prepare(
-            `SELECT id FROM payment_intents WHERE salt_amount=? AND status='PENDING' AND expires_at > datetime('now')`
-          ).bind(saltAmount).first<{ id: string }>();
-          const ev: ChainEvent = {
-            txHash: log.transactionHash, logIndex: log.logIndex,
-            blockNo: parseInt(log.blockNumber, 16), blockHash: log.blockHash,
-            from: log.topics[1].slice(-40).toLowerCase(), to: log.topics[2].slice(-40).toLowerCase(),
-            cents, intentId: intent?.id ?? null,
-          };
-          // INSERT OR IGNORE = (tx_hash, log_index) 幂等
-          await env.DB.prepare(
-            `INSERT OR IGNORE INTO chain_events (tx_hash, log_index, block_no, block_hash, contract_addr, from_addr, to_addr, amount, status, intent_id) VALUES (?,?,?,?,?,?,?,?, 'PENDING', ?)`
-          ).bind(ev.txHash, ev.logIndex, ev.blockNo, ev.blockHash, chainOf(env).usdt, ev.from, ev.to, (ev.cents / 100).toFixed(2), ev.intentId).run();
-          await env.EVENTS.send(ev);
-        }
-        last = to;
-      }
-      await kvPut(env.DB, "scan:lastBlock", String(last));
-
-      // 支付广播超时（15 分钟）：PAYING → EXPIRED（原 60min txid 模式已废除）
-      await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();
-      // 到期扫描：HOLDING 满 7 天 → MATURED
-      await env.DB.prepare(
-        `UPDATE holdings SET state='MATURED', matured_at=datetime('now') WHERE state='HOLDING' AND created_at <= datetime('now', '-7 days')`
-      ).run();
-    })());
+    ctx.waitUntil(runCronOnce(env));
   },
 
   // ─── 入账引擎：确认数 → reorg 校验 → D1 batch 原子入账 ───
