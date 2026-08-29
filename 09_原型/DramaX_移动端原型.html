@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DramaX · 短剧剧本交易平台（BSC）</title>
+<style>
+  :root {
+    --primary: #534AB7;
+    --primary-bg: #EEEDFE;
+    --text: #26215C;
+    --price: #993C1D;
+    --page-bg: #F1EFE8;
+    --card: #FFFFFF;
+    --divider: #E5E2D6;
+    --radius: 14px;
+    --up: #C53030;   /* 涨红 */
+    --down: #2F855A; /* 跌绿 */
+    --gray-surface: #F5F4EE;
+    --muted: #8B87A3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--page-bg);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 0;
+  }
+  .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+  /* 手机容器 */
+  .phone {
+    width: 100%;
+    max-width: 375px;
+    background: var(--page-bg);
+    border-radius: 32px;
+    box-shadow: 0 24px 60px rgba(38, 33, 92, .18), 0 2px 8px rgba(38, 33, 92, .08);
+    overflow: hidden;
+    position: relative;
+    min-height: 720px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== 页面路由 ===== */
+  .page { display: none; flex: 1; flex-direction: column; }
+  .page.active { display: flex; }
+
+  /* ===== 通用组件 ===== */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin: 0 16px 12px;
+    box-shadow: 0 1px 3px rgba(38, 33, 92, .05);
+  }
+  .btn {
+    display: block; width: 100%; border: none; border-radius: var(--radius);
+    padding: 13px 0; font-size: 15px; font-weight: 600; cursor: pointer;
+    background: var(--primary); color: #fff; text-align: center;
+    transition: opacity .15s;
+  }
+  .btn:active { opacity: .85; }
+  .btn.ghost {
+    background: var(--primary-bg); color: var(--primary);
+    border: 1px solid rgba(83, 74, 183, .25);
+  }
+  .btn.plain { background: #fff; color: var(--primary); border: 1px solid var(--divider); }
+  .btn.disabled {
+    background: var(--divider); color: var(--muted); cursor: not-allowed; font-weight: 500;
+  }
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 999px; line-height: 1.5;
+  }
+  .tag.surface { background: var(--gray-surface); color: #6B677E; border: 1px solid var(--divider); }
+  .tag.primary-bg { background: var(--primary-bg); color: var(--primary); border: 1px solid rgba(83,74,183,.2); }
+  .tag.warn { background: #F7E9E1; color: var(--price); }
+  .tag.ok { background: #E4F0E9; color: var(--down); }
+  .tag.blue { background: #E8ECF9; color: #3A5FA8; }
+  .section-title { font-size: 16px; font-weight: 700; margin: 20px 16px 10px; display: flex; align-items: center; justify-content: space-between; }
+  .risk-note { font-size: 10px; color: var(--muted); line-height: 1.6; margin: 8px 16px 0; }
+  .divider { height: 1px; background: var(--divider); margin: 12px 0; }
+  .row { display: flex; align-items: center; justify-content: space-between; }
+  .chain-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700; color: var(--primary);
+    background: var(--primary-bg); border-radius: 999px; padding: 3px 10px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #2F855A; display: inline-block; }
+
+  /* ===== 登录页 ===== */
+  #page-login { padding: 48px 20px 32px; }
+  .logo { text-align: center; margin-bottom: 6px; }
+  .logo-mark {
+    width: 72px; height: 72px; margin: 0 auto 14px; border-radius: 22px;
+    background: linear-gradient(135deg, var(--primary), #7A6FE0);
+    color: #fff; font-size: 30px; font-weight: 800; line-height: 72px;
+    box-shadow: 0 10px 24px rgba(83, 74, 183, .35);
+  }
+  .logo h1 { font-size: 26px; letter-spacing: 1px; color: var(--text); }
+  .logo p { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .wallet-group { margin-top: 28px; display: flex; flex-direction: column; gap: 10px; }
+  .wallet-btn {
+    display: flex; align-items: center; gap: 12px;
+    background: #fff; border: 1px solid var(--divider); border-radius: var(--radius);
+    padding: 13px 14px; cursor: pointer; font-size: 15px; font-weight: 600; color: var(--text);
+  }
+  .wallet-btn .w-ico {
+    width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; color: #fff; font-weight: 700;
+  }
+  .wallet-btn .w-sub { font-size: 11px; color: var(--muted); font-weight: 400; display: block; margin-top: 1px; }
+  .chain-guide {
+    margin-top: 18px; background: #FDF6EC; border: 1px solid #EFD9BE; border-radius: var(--radius);
+    padding: 12px 14px; font-size: 12px; color: var(--price); line-height: 1.7;
+  }
+  .siwe-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 10px; line-height: 1.6; }
+
+  /* ===== 顶栏 ===== */
+  .app-header {
+    padding: 18px 16px 12px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .app-header .h-title { font-size: 20px; font-weight: 800; }
+  .app-header .h-right { display: flex; align-items: center; gap: 8px; }
+  .app-body { flex: 1; overflow-y: auto; padding-bottom: 84px; }
+
+  /* ===== 首页 ===== */
+  .asset-card {
+    background: linear-gradient(135deg, var(--primary), #6C60D6);
+    color: #fff; margin: 0 16px 12px; border-radius: var(--radius); padding: 18px 16px;
+    box-shadow: 0 8px 20px rgba(83, 74, 183, .28);
+  }
+  .asset-card .a-label { font-size: 12px; opacity: .8; }
+  .asset-card .a-balance { font-size: 30px; font-weight: 800; margin: 4px 0 2px; }
+  .asset-card .a-balance small { font-size: 13px; font-weight: 600; opacity: .85; margin-left: 4px; }
+  .asset-sub { display: flex; gap: 0; margin-top: 14px; border-top: 1px solid rgba(255,255,255,.22); padding-top: 12px; }
+  .asset-sub .s-item { flex: 1; }
+  .asset-sub .s-item + .s-item { border-left: 1px solid rgba(255,255,255,.22); padding-left: 14px; }
+  .asset-sub .s-label { font-size: 11px; opacity: .8; }
+  .asset-sub .s-val { font-size: 16px; font-weight: 700; margin-top: 3px; }
+  .asset-sub .s-hint { font-size: 9px; opacity: .7; margin-top: 2px; }
+  .asset-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .asset-actions .mini-btn {
+    flex: 1; border: none; border-radius: 10px; padding: 9px 0; font-size: 13px; font-weight: 600;
+    background: rgba(255,255,255,.16); color: #fff; cursor: pointer;
+  }
+  .asset-actions .mini-btn.solid { background: #fff; color: var(--primary); }
+
+  .session-row {
+    display: flex; align-items: center; justify-content: space-between;
+    border-radius: 12px; padding: 12px; margin-bottom: 8px;
+  }
+  .session-row:last-child { margin-bottom: 0; }
+  .session-row.surface { background: var(--gray-surface); border: 1px solid var(--divider); }
+  .session-row.primary-bg { background: var(--primary-bg); border: 1px solid rgba(83,74,183,.18); }
+  .session-row .sc-name { font-size: 13px; font-weight: 700; }
+  .session-row .sc-time { font-size: 12px; margin-top: 3px; }
+  .session-row.surface .sc-time { color: #6B677E; }
+  .session-row.primary-bg .sc-time { color: var(--primary); }
+  .session-row .sc-btn {
+    border: none; border-radius: 999px; padding: 7px 16px; font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .session-row .sc-btn.go { background: var(--primary); color: #fff; }
+  .session-row .sc-btn.off { background: var(--divider); color: var(--muted); cursor: not-allowed; }
+  .session-row .sc-btn.ghosted { background: #fff; color: var(--primary); border: 1px solid rgba(83,74,183,.35); }
+
+  .quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 4px 0 2px; }
+  .quick-item { text-align: center; cursor: pointer; }
+  .quick-item .q-ico {
+    width: 46px; height: 46px; margin: 0 auto 6px; border-radius: 14px;
+    background: var(--primary-bg); display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .quick-item .q-txt { font-size: 11px; color: var(--text); font-weight: 600; }
+
+  /* ===== 市场 ===== */
+  .list-card {
+    background: #fff; border-radius: var(--radius); padding: 14px 16px; margin: 0 16px 10px;
+    box-shadow: 0 1px 3px rgba(38,33,92,.05);
+  }
+  .list-card .l-name { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .list-card .l-price { font-size: 18px; font-weight: 800; color: var(--price); margin-top: 6px; }
+  .list-card .l-price small { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .list-card .l-cd { font-size: 12px; color: var(--price); font-weight: 700; }
+  .record-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; }
+  .record-row + .record-row { border-top: 1px solid var(--divider); }
+  .record-row .r-name { font-size: 13px; font-weight: 600; }
+  .record-row .r-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .record-row .r-amt { font-size: 14px; font-weight: 700; text-align: right; }
+  .record-row .r-amt.in { color: var(--up); }
+  .record-row .r-amt.out { color: var(--down); }
+
+  /* ===== 持仓 ===== */
+  .hold-card { background: #fff; border-radius: var(--radius); padding: 14px 16px; margin: 0 16px 12px; box-shadow: 0 1px 3px rgba(38,33,92,.05); }
+  .hold-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .hold-head .h-name { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .status-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+  .st-holding { background: var(--primary-bg); color: var(--primary); }
+  .st-matured { background: #FDF3E7; color: #B4690E; }
+  .st-listable { background: #E4F0E9; color: var(--down); }
+  .st-listing { background: #E8ECF9; color: #3A5FA8; }
+  .st-matching { background: #FCEEF3; color: #B0357F; }
+  .st-sold { background: var(--gray-surface); color: #6B677E; }
+  .st-dao { background: #F7E9E1; color: var(--price); }
+  .hold-main { display: flex; align-items: flex-end; justify-content: space-between; }
+  .hold-main .book-label { font-size: 11px; color: var(--muted); }
+  .hold-main .book-val { font-size: 24px; font-weight: 800; margin: 2px 0 4px; }
+  .hold-main .list-val { text-align: right; }
+  .hold-main .list-val .lv-label { font-size: 11px; color: var(--muted); }
+  .hold-main .list-val .lv-num { font-size: 15px; font-weight: 700; color: var(--price); margin-top: 2px; }
+  .hold-sub { display: flex; gap: 18px; margin-top: 8px; }
+  .hold-sub .hs-item { font-size: 12px; color: #6B677E; }
+  .hold-sub .hs-item b { font-weight: 700; color: var(--text); }
+  .hold-bar { height: 6px; background: var(--divider); border-radius: 999px; margin-top: 12px; overflow: hidden; }
+  .hold-bar .fill { height: 100%; border-radius: 999px; background: var(--primary); }
+  .hold-occupy {
+    margin-top: 10px; background: var(--gray-surface); border-radius: 10px; padding: 9px 12px;
+    font-size: 12px; color: #6B677E; line-height: 1.7;
+  }
+  .hold-occupy b { color: var(--text); }
+  .hold-occupy.short { background: #FDF0EA; }
+  .hold-occupy.short b { color: var(--price); }
+  .hold-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .hold-actions .btn { padding: 9px 0; font-size: 13px; border-radius: 10px; }
+
+  .waterfall-demo { background: #fff; border-radius: var(--radius); margin: 0 16px 12px; padding: 16px; box-shadow: 0 1px 3px rgba(38,33,92,.05); }
+  .wf-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; }
+  .wf-row + .wf-row { border-top: 1px dashed var(--divider); }
+  .wf-row .wf-label { font-size: 13px; }
+  .wf-row .wf-label small { color: var(--muted); font-size: 11px; margin-left: 4px; }
+  .wf-row .wf-val { font-size: 14px; font-weight: 700; }
+  .wf-total { background: var(--primary-bg); border-radius: 10px; padding: 10px 12px; margin-top: 10px; display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: var(--primary); }
+
+  /* ===== 我的 ===== */
+  .profile-head { display: flex; align-items: center; gap: 12px; padding: 18px 16px 14px; }
+  .avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #7A6FE0); color: #fff; font-size: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .profile-head .p-name { font-size: 16px; font-weight: 700; }
+  .profile-head .p-addr { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .menu-list { background: #fff; border-radius: var(--radius); margin: 0 16px 12px; overflow: hidden; }
+  .menu-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; cursor: pointer; }
+  .menu-row + .menu-row { border-top: 1px solid var(--divider); }
+  .menu-row .m-label { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .menu-row .m-right { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .rebate-cards { display: flex; gap: 8px; margin-top: 10px; }
+  .rebate-cards .rc { flex: 1; border-radius: 10px; padding: 10px; text-align: center; }
+  .rebate-cards .rc.a { background: var(--gray-surface); }
+  .rebate-cards .rc.b { background: var(--primary-bg); }
+  .rebate-cards .rc-t { font-size: 11px; color: #6B677E; }
+  .rebate-cards .rc-v { font-size: 20px; font-weight: 800; margin-top: 3px; color: var(--primary); }
+  .rebate-cards .rc.a .rc-v { color: var(--text); }
+  .point-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; }
+  .point-row + .point-row { border-top: 1px solid var(--divider); }
+  .point-row .pt-name { font-size: 13px; font-weight: 600; }
+  .point-row .pt-src { font-size: 10px; margin-top: 2px; }
+  .point-row .pt-src.srcA { color: var(--primary); }
+  .point-row .pt-src.srcB { color: #B4690E; }
+  .point-row .pt-val { font-size: 14px; font-weight: 700; color: var(--up); }
+
+  /* ===== 底部 Tab ===== */
+  .tabbar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: #fff; border-top: 1px solid var(--divider);
+    display: flex; padding: 8px 0 max(10px, env(safe-area-inset-bottom)); z-index: 20;
+  }
+  .tab-item { flex: 1; text-align: center; cursor: pointer; color: var(--muted); font-size: 10px; font-weight: 600; }
+  .tab-item .t-ico { font-size: 20px; display: block; margin-bottom: 2px; }
+  .tab-item.active { color: var(--primary); }
+
+  /* ===== 弹层 ===== */
+  .mask {
+    position: absolute; inset: 0; background: rgba(38, 33, 92, .45); z-index: 30;
+    display: none; align-items: flex-end;
+  }
+  .mask.open { display: flex; }
+  .sheet {
+    background: #fff; width: 100%; border-radius: 20px 20px 0 0; padding: 20px 18px 28px;
+    max-height: 86%; overflow-y: auto; animation: slideUp .22s ease-out;
+  }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .sheet-title { font-size: 17px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .sheet-close { width: 26px; height: 26px; border-radius: 50%; background: var(--gray-surface); color: #6B677E; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; border: none; }
+
+  .pay-amount-box { background: var(--primary-bg); border-radius: var(--radius); padding: 14px; text-align: center; margin: 12px 0; }
+  .pay-amount-box .pa-label { font-size: 12px; color: var(--primary); font-weight: 600; }
+  .pay-amount-box .pa-val { font-size: 28px; font-weight: 800; color: var(--primary); margin-top: 4px; }
+  .pay-amount-box .pa-val small { font-size: 13px; }
+  .kv-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 11px 0; }
+  .kv-row + .kv-row { border-top: 1px solid var(--divider); }
+  .kv-row .k { font-size: 13px; color: #6B677E; flex-shrink: 0; }
+  .kv-row .v { font-size: 13px; font-weight: 600; text-align: right; word-break: break-all; }
+  .kv-row .v .addr { font-family: "SF Mono", Menlo, monospace; }
+  .copy-btn { display: inline-block; margin-left: 8px; font-size: 11px; color: var(--primary); background: var(--primary-bg); border-radius: 6px; padding: 2px 8px; cursor: pointer; border: none; font-weight: 700; }
+  .salt-note { background: #FDF6EC; border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--price); line-height: 1.7; margin: 10px 0; }
+
+  /* 支付状态 */
+  .status-steps { margin: 16px 0; }
+  .status-step { display: flex; gap: 12px; padding-bottom: 20px; position: relative; }
+  .status-step:last-child { padding-bottom: 0; }
+  .status-step::before {
+    content: ""; position: absolute; left: 13px; top: 28px; bottom: 2px; width: 2px; background: var(--divider);
+  }
+  .status-step:last-child::before { display: none; }
+  .status-step.done::before { background: var(--primary); }
+  .step-ico {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; z-index: 1;
+    display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+    background: var(--divider); color: #fff;
+  }
+  .status-step.done .step-ico { background: var(--primary); }
+  .status-step.active .step-ico { background: var(--primary); box-shadow: 0 0 0 4px var(--primary-bg); }
+  .step-txt .st-title { font-size: 14px; font-weight: 700; color: var(--muted); }
+  .status-step.done .st-title, .status-step.active .st-title { color: var(--text); }
+  .step-txt .st-desc { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.6; }
+  .confirm-progress { font-size: 13px; font-weight: 800; color: var(--primary); }
+
+  /* 档位表 */
+  .tier-row {
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1.5px solid var(--divider); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
+  }
+  .tier-row.selected { border-color: var(--primary); background: var(--primary-bg); }
+  .tier-row.disabled { background: var(--gray-surface); cursor: not-allowed; opacity: .75; }
+  .tier-row .tr-range { font-size: 14px; font-weight: 700; }
+  .tier-row .tr-fee { font-size: 12px; color: #6B677E; margin-top: 2px; }
+  .tier-row.disabled .tr-fee { color: var(--price); }
+  .tier-row .tr-check { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--divider); flex-shrink: 0; }
+  .tier-row.selected .tr-check { border-color: var(--primary); background: var(--primary); box-shadow: inset 0 0 0 3px #fff; }
+  .confirm-total { background: var(--gray-surface); border-radius: 10px; padding: 12px 14px; margin: 6px 0 14px; font-size: 13px; line-height: 2; }
+
+  .toast {
+    position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%);
+    background: rgba(38,33,92,.88); color: #fff; font-size: 12px; border-radius: 999px;
+    padding: 8px 18px; z-index: 60; opacity: 0; pointer-events: none; transition: opacity .25s;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+
+  <!-- ============ 1. 连接 / 登录页 ============ -->
+  <div class="page active" id="page-login">
+    <div class="logo">
+      <div class="logo-mark">D</div>
+      <h1>DramaX</h1>
+      <p>短剧剧本交易平台 · BSC 单链</p>
+    </div>
+
+    <div class="chain-guide">
+      <b>BSC 切链引导</b><br>
+      检测到当前钱包网络不是 BSC 主网。请确认钱包已添加并切换至
+      <b>BSC Mainnet</b>（链 ID：chainId 56），切链后即可进行连接。
+    </div>
+
+    <div class="wallet-group">
+      <button class="wallet-btn" onclick="onWalletPick('TokenPocket')">
+        <span class="w-ico" style="background:#2A68FF">TP</span>
+        <span>TokenPocket<span class="w-sub">移动端推荐 · 自动唤起</span></span>
+      </button>
+      <button class="wallet-btn" onclick="onWalletPick('OKX Wallet')">
+        <span class="w-ico" style="background:#26215C">OK</span>
+        <span>OKX Wallet<span class="w-sub">支持 BSC 主网一键切换</span></span>
+      </button>
+      <button class="wallet-btn" onclick="onWalletPick('MetaMask')">
+        <span class="w-ico" style="background:#F6851B">M</span>
+        <span>MetaMask<span class="w-sub">浏览器插件 / App 均可</span></span>
+      </button>
+      <button class="wallet-btn" onclick="onWalletPick('WalletConnect')">
+        <span class="w-ico" style="background:#3B99FC">W</span>
+        <span>WalletConnect 扫码<span class="w-sub">使用其他钱包扫码连接</span></span>
+      </button>
+    </div>
+
+    <div style="margin-top:20px">
+      <button class="btn" id="btn-siwe" onclick="doSiweLogin()">签名登录（SIWE）</button>
+      <div class="siwe-note">Sign-In With Ethereum · 登录签名不消耗 Gas，不发起任何转账。<br>连接即代表同意《平台服务协议》与《风险告知书》。</div>
+    </div>
+    <div style="height:32px"></div>
+  </div>
+
+  <!-- ============ 主应用（登录后显示） ============ -->
+  <div id="app" style="display:none; flex:1; flex-direction:column; position:relative;">
+
+    <!-- 顶栏 -->
+    <div class="app-header" id="app-header">
+      <div class="h-title" id="header-title">首页</div>
+      <div class="h-right">
+        <span class="chain-badge"><span class="dot"></span>BSC · 56</span>
+        <span class="chain-badge num" style="background:#fff;border:1px solid var(--divider);color:#6B677E" onclick="logout()">0x7aF3…C2e9</span>
+      </div>
+    </div>
+
+    <div class="app-body" id="app-body">
+
+      <!-- ===== 2. 首页 Tab ===== -->
+      <div class="page active" id="page-home">
+        <!-- 资产总览卡 -->
+        <div class="asset-card">
+          <div class="a-label">Drama 余额</div>
+          <div class="a-balance num">3,258.60<small>Drama</small></div>
+          <div class="asset-sub">
+            <div class="s-item">
+              <div class="s-label">生态积分</div>
+              <div class="s-val num">1,245.00</div>
+              <div class="s-hint">1 Drama = 1 积分 · 不可兑回</div>
+            </div>
+            <div class="s-item" style="padding-left:14px">
+              <div class="s-label">持仓总值（3 笔）</div>
+              <div class="s-val num">12,089.21</div>
+              <div class="s-hint">按当前账面价合计</div>
+            </div>
+          </div>
+          <div class="asset-actions">
+            <button class="mini-btn solid" onclick="openPay('入金（USDT → Drama）', '1000.37')">入金</button>
+            <button class="mini-btn" onclick="switchTab('market')">市场</button>
+            <button class="mini-btn" onclick="switchTab('holdings')">持仓</button>
+          </div>
+        </div>
+
+        <!-- 今日场次 -->
+        <div class="card">
+          <div class="row" style="margin-bottom:12px">
+            <div style="font-size:16px;font-weight:700">今日场次</div>
+            <span class="tag surface">预约制 · 名额有限</span>
+          </div>
+
+          <div class="session-row surface">
+            <div>
+              <div class="sc-name"><span class="tag surface" style="margin-right:6px">普通区</span>常规场次</div>
+              <div class="sc-time num">每日 16:00 开场</div>
+            </div>
+            <button class="sc-btn go" onclick="openConfirm('普通区 · 每日 16:00')">抢购</button>
+          </div>
+
+          <div class="session-row primary-bg">
+            <div>
+              <div class="sc-name"><span class="tag primary-bg" style="margin-right:6px;background:#fff">创新区</span>主题场次 A / B</div>
+              <div class="sc-time num">每周二 / 四 / 六 · 15:00 与 17:00</div>
+            </div>
+            <button class="sc-btn ghosted" onclick="openConfirm('创新区 · 周二/四/六 15:00 & 17:00')">抢购</button>
+          </div>
+
+          <div class="risk-note" style="margin:10px 0 0">场次以平台日程公示为准；预约成功后按所选档位支付即锁定名额。</div>
+        </div>
+
+        <!-- 快捷入口 -->
+        <div class="card">
+          <div style="font-size:16px;font-weight:700;margin-bottom:12px">快捷入口</div>
+          <div class="quick-grid">
+            <div class="quick-item" onclick="openPay('入金（USDT → Drama）','1000.37')">
+              <div class="q-ico">💸</div><div class="q-txt">入金</div>
+            </div>
+            <div class="quick-item" onclick="switchTab('market')">
+              <div class="q-ico">🏪</div><div class="q-txt">P2P 市场</div>
+            </div>
+            <div class="quick-item" onclick="switchTab('holdings')">
+              <div class="q-ico">📜</div><div class="q-txt">我的持仓</div>
+            </div>
+            <div class="quick-item" onclick="switchTab('profile')">
+              <div class="q-ico">🌿</div><div class="q-txt">生态积分</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="risk-note" style="margin-bottom:12px">
+          平台展示的「历史日增」为历史场次统计口径的历史数据，仅供参考，不构成任何承诺。数字资产价格波动较大，请理性参与、自主决策。
+        </div>
+      </div>
+
+      <!-- ===== 3. 市场 Tab ===== -->
+      <div class="page" id="page-market">
+        <div class="section-title" style="margin-top:4px">P2P 挂单列表</div>
+        <div class="card" style="padding:12px 16px">
+          <div class="tag blue" style="margin-bottom:8px">卖方挂单 · 买方出价撮合</div>
+          <div class="risk-note" style="margin:0 0 10px">挂单成交后进入支付广播窗口：<b>15 分钟</b>内买方须完成链上支付，超时未支付订单自动关闭并释放剧本。</div>
+
+          <div class="list-card" style="margin:10px 0 8px; box-shadow:none; border:1px solid var(--divider)">
+            <div class="row">
+              <div class="l-name">《星际厨房》 <span class="tag primary-bg">创新区</span></div>
+              <div class="l-cd num" data-cd="761">--:--</div>
+            </div>
+            <div class="row" style="margin-top:6px">
+              <div class="l-price num">1,900.16 <small>挂单价</small></div>
+              <span class="tag ok">支持 USDT (BSC)</span>
+            </div>
+          </div>
+
+          <div class="list-card" style="margin:8px 0; box-shadow:none; border:1px solid var(--divider)">
+            <div class="row">
+              <div class="l-name">《嫌疑人素描》 <span class="tag surface">普通区</span></div>
+              <div class="l-cd num" data-cd="495">--:--</div>
+            </div>
+            <div class="row" style="margin-top:6px">
+              <div class="l-price num">946.52 <small>挂单价</small></div>
+              <span class="tag ok">支持 USDT (BSC)</span>
+            </div>
+          </div>
+
+          <div class="list-card" style="margin:8px 0 2px; box-shadow:none; border:1px solid var(--divider)">
+            <div class="row">
+              <div class="l-name">《王牌卧底》 <span class="tag surface">普通区</span></div>
+              <div class="l-cd num" data-cd="842">--:--</div>
+            </div>
+            <div class="row" style="margin-top:6px">
+              <div class="l-price num">7,098.88 <small>挂单价</small></div>
+              <span class="tag ok">支持 USDT (BSC)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">成交记录</div>
+        <div class="card" style="padding:4px 16px">
+          <div class="record-row">
+            <div>
+              <div class="r-name">《正义之刃》 买入成交</div>
+              <div class="r-time num">08-27 21:14 · BSC 链上结算</div>
+            </div>
+            <div class="r-amt in num">-1,183.15 USDT</div>
+          </div>
+          <div class="record-row">
+            <div>
+              <div class="r-name">《迷雾电台》 卖出成交</div>
+              <div class="r-time num">08-26 18:02 · BSC 链上结算</div>
+            </div>
+            <div class="r-amt out num">+642.08 USDT</div>
+          </div>
+          <div class="record-row">
+            <div>
+              <div class="r-name">《双城密码》 买入成交</div>
+              <div class="r-time num">08-25 12:47 · BSC 链上结算</div>
+            </div>
+            <div class="r-amt in num">-956.33 USDT</div>
+          </div>
+        </div>
+        <div class="risk-note" style="margin-bottom:12px">
+          挂单价 = 账面价 × 1.03。成交价由买卖双方挂单撮合形成，历史成交数据仅供参考，不构成任何承诺。
+        </div>
+      </div>
+
+      <!-- ===== 4. 持仓 Tab ===== -->
+      <div class="page" id="page-holdings">
+        <div class="section-title" style="margin-top:4px">我的持仓 <span class="tag surface">7 笔</span></div>
+
+        <!-- 状态1：持有中 -->
+        <div class="hold-card">
+          <div class="hold-head">
+            <div class="h-name">《都市医声》 <span class="tag surface">普通区</span></div>
+            <span class="status-badge st-holding">持有中</span>
+          </div>
+          <div class="hold-main">
+            <div>
+              <div class="book-label">当前账面价（历史日增 2% · 复利）</div>
+              <div class="book-val num">2,122.42</div>
+            </div>
+            <div class="list-val">
+              <div class="lv-label">本金</div>
+              <div class="lv-num num">2,000.00</div>
+            </div>
+          </div>
+          <div class="hold-sub">
+            <div class="hs-item">累计增长 <b class="num">122.42</b></div>
+            <div class="hs-item">持有进度 <b class="num">第 3/7 天</b></div>
+          </div>
+          <div class="hold-bar"><div class="fill" style="width:43%"></div></div>
+          <div class="risk-note" style="margin:8px 0 0">预计到期账面 2,297.37（按历史日增 2% 满 7 天复利测算，历史数据仅供参考，不构成任何承诺）</div>
+          <div class="hold-occupy">卖出需占用 Drama（增长×85%）：<b class="num">104.05</b></div>
+        </div>
+
+        <!-- 状态2：已到账（MATURED） -->
+        <div class="hold-card">
+          <div class="hold-head">
+            <div class="h-name">《嫌疑人素描》 <span class="tag surface">普通区</span></div>
+            <span class="status-badge st-matured">已到账</span>
+          </div>
+          <div class="hold-main">
+            <div>
+              <div class="book-label">账面价（历史日增 2% · 7 天复利）</div>
+              <div class="book-val num">918.95</div>
+            </div>
+            <div class="list-val">
+              <div class="lv-label">本金</div>
+              <div class="lv-num num">800.00</div>
+            </div>
+          </div>
+          <div class="hold-sub">
+            <div class="hs-item">累计增长 <b class="num">118.95</b></div>
+            <div class="hs-item">持有进度 <b class="num">第 7/7 天</b></div>
+          </div>
+          <div class="hold-bar"><div class="fill" style="width:100%"></div></div>
+          <div class="hold-occupy">卖出需占用 Drama（增长×85%）：<b class="num">101.11</b></div>
+          <div class="hold-actions">
+            <button class="btn" onclick="toast('已发起挂单：挂单价 = 918.95 × 1.03 = 946.52')">挂单卖出（挂单价 946.52）</button>
+          </div>
+        </div>
+
+        <!-- 状态3：可挂单 -->
+        <div class="hold-card">
+          <div class="hold-head">
+            <div class="h-name">《星际厨房》 <span class="tag primary-bg">创新区</span></div>
+            <span class="status-badge st-listable">可挂单</span>
+          </div>
+          <div class="hold-main">
+            <div>
+              <div class="book-label">账面价（历史日增 3% · 7 天复利）</div>
+              <div class="book-val num">1,844.81</div>
+            </div>
+            <div class="list-val">
+              <div class="lv-label">本金</div>
+              <div class="lv-num num">1,500.00</div>
+            </div>
+          </div>
+          <div class="hold-sub">
+            <div class="hs-item">累计增长 <b class="num">344.81</b></div>
+            <div class="hs-item">占用 <b class="num">293.09</b></div>
+          </div>
+          <div class="hold-occupy">卖出需占用 Drama（增长×85%）：<b class="num">293.09</b></div>
+          <div class="hold-actions">
+            <button class="btn" onclick="toast('已发起挂单：挂单价 = 1,844.81 × 1.03 = 1,900.16')">挂单（挂单价 1,900.16）</button>
+          </div>
+        </div>
+
+        <!-- 状态4：挂单中 -->
+        <div class="hold-card">
+          <div class="hold-head">
+            <div class="h-name">《午夜街机》 <span class="tag primary-bg">创新区</span></div>
+            <span class="status-badge st-listing">挂单中</span>
+          </div>
+          <div class="hold-main">
+            <div>
+              <div class="book-label">账面价（历史日增 3% · 7 天复利）</div>
+              <div class="book-val num">3,074.68</div>
+            </div>
+            <div class="list-val">
+              <div class="lv-label">挂单价 ×1.03</div>
+              <div class="lv-num num">3,166.93</div>
+            </div>
+          </div>
+          <div class="hold-sub">
+            <div class="hs-item">累计增长 <b class="num">574.68</b></div>
+            <div class="hs-item">已占用 <b class="num">488.48</b></div>
+          </div>
+          <div class="hold-occupy">卖出需占用 Drama（增长×85%）：<b class="num">488.48</b> · 已锁定，等待买方支付（广播窗口 15 分钟）</div>
+          <div class="hold-actions">
+            <button class="btn plain" onclick="toast('已撤单，占用 Drama 已释放')">撤单</button>
+          </div>
+        </div>
+
+        <!-- 状态5：匹配中 -->
+        <div class="hold-card">
+          <div class="hold-head">
+            <div class="h-name">《王牌卧底》 <span class="tag surface">普通区</span></div>
+            <span class="status-badge st-matching">匹配中</span>
+          </div>
+          <div class="hold-main">
+            <div>
+              <div class="book-label">账面价（历史日增 2% · 7 天复利）</div>
+              <div class="book-val num">6,892.11</div>
+            </div>
+            <div class="list-val">
+              <div class="lv-label">挂单价 ×1.03</div>
+              <div class="lv-num num">7,098.88</div>
+            </div>
+          </div>
+          <div class="hold-sub">
+            <div class="hs-item">累计增长 <b class="num">892.11</b></div>
+            <div class="hs-item">已占用 <b class="num">758.30</b></div>
+          </div>
+          <div class="hold-occupy">卖出需占用 Drama（增长×85%）：<b class="num">758.30</b> · 已锁定 · 买方已支付，等待链上确认</div>
+        </div>
+
+        <!-- 状态6：已售 -->
+        <div class="hold-card">
+          <div class="hold-head">
+            <div class="h-name">《正义之刃》 <span class="tag surface">普通区</span></div>
+            <span class="status-badge st-sold">已售</span>
+          </div>
+          <div class="hold-main">
+            <div>
+              <div class="book-label">账面价（历史日增 2% · 7 天复利）</div>
+              <div class="book-val num" style="color:var(--muted)">1,148.69</div>
+            </div>
+            <div class="list-val">
+              <div class="lv-label">成交价 ×1.03</div>
+              <div class="lv-num num" style="color:var(--up)">1,183.15</div>
+            </div>
+          </div>
+          <div class="hold-sub">
+            <div class="hs-item">累计增长 <b class="num">148.69</b></div>
+            <div class="hs-item">结算瀑布 <b>70 / 15 / 15</b></div>
+          </div>
+          <div class="hold-occupy">卖出需占用 Drama（增长×85%）：<b class="num">126.38</b> · 已结算释放</div>
+        </div>
+
+        <!-- 状态7：待补充（DAO_INSUFFICIENT） -->
+        <div class="hold-card">
+          <div class="hold-head">
+            <div class="h-name">《AI 伴读》 <span class="tag primary-bg">创新区</span></div>
+            <span class="status-badge st-dao">待补充</span>
+          </div>
+          <div class="hold-main">
+            <div>
+              <div class="book-label">账面价（历史日增 3% · 7 天复利）</div>
+              <div class="book-val num">321.00</div>
+            </div>
+            <div class="list-val">
+              <div class="lv-label">本金</div>
+              <div class="lv-num num">261.00</div>
+            </div>
+          </div>
+          <div class="hold-sub">
+            <div class="hs-item">累计增长 <b class="num">60.00</b></div>
+            <div class="hs-item">持有进度 <b class="num">第 7/7 天</b></div>
+          </div>
+          <div class="hold-bar"><div class="fill" style="width:100%;background:var(--price)"></div></div>
+          <div class="hold-occupy short">
+            卖出需占用 Drama（增长×85%）：<b class="num">51.00</b><br>
+            当前可用 Drama：<b class="num">30.00</b> · 缺口 <b class="num">21.00</b>，请补充余额后再发起挂单
+          </div>
+          <div class="hold-actions">
+            <button class="btn ghost" onclick="openPay('补充 Drama（USDT → Drama）','21.37')">补充缺口 21.00</button>
+          </div>
+        </div>
+
+        <!-- 结算瀑布示例 -->
+        <div class="section-title">结算瀑布 · 增长拆分（示例）</div>
+        <div class="waterfall-demo">
+          <div class="wf-row">
+            <div class="wf-label">累计增长<small>（示例口径）</small></div>
+            <div class="wf-val num">300.00</div>
+          </div>
+          <div class="wf-row">
+            <div class="wf-label">手续费<small>（70%）</small></div>
+            <div class="wf-val num">210.00</div>
+          </div>
+          <div class="wf-row">
+            <div class="wf-label">现金结算<small>（15%）</small></div>
+            <div class="wf-val num">45.00</div>
+          </div>
+          <div class="wf-row">
+            <div class="wf-label">生态积分<small>（15% · 45 Drama → 45 积分，1:1）</small></div>
+            <div class="wf-val num">45.00</div>
+          </div>
+          <div class="wf-total"><span>合计校验 210.00 + 45.00 + 45.00</span><span class="num">= 300.00 ✓</span></div>
+          <div class="risk-note" style="margin:10px 0 0">上图为结算拆分规则的示例演示；实际以每笔订单链上结算为准。历史数据仅供参考，不构成任何承诺。</div>
+        </div>
+      </div>
+
+      <!-- ===== 5. 我的 Tab ===== -->
+      <div class="page" id="page-profile">
+        <div class="profile-head">
+          <div class="avatar">D</div>
+          <div>
+            <div class="p-name">DramaX 用户</div>
+            <div class="p-addr num">0x7aF3…C2e9 · BSC Mainnet (chainId 56)</div>
+          </div>
+        </div>
+
+        <!-- 团队返佣 -->
+        <div class="card">
+          <div class="row">
+            <div style="font-size:16px;font-weight:700">团队返佣</div>
+            <span class="tag primary-bg">按订阅手续费计算</span>
+          </div>
+          <div class="rebate-cards">
+            <div class="rc a">
+              <div class="rc-t">1 – 3 代</div>
+              <div class="rc-v">7%</div>
+            </div>
+            <div class="rc b">
+              <div class="rc-t">4 – 10 代</div>
+              <div class="rc-v">2%</div>
+            </div>
+          </div>
+          <div class="risk-note" style="margin:10px 0 0">返佣来源为团队成员订阅场次的手续费部分，按上述比例以 Drama 发放；返佣比例以平台公示为准。</div>
+        </div>
+
+        <!-- 生态积分 -->
+        <div class="card">
+          <div class="row">
+            <div style="font-size:16px;font-weight:700">生态积分明细</div>
+            <div class="num" style="font-size:16px;font-weight:800;color:var(--primary)">1,245.00</div>
+          </div>
+          <div class="divider" style="margin:12px 0 2px"></div>
+          <div class="point-row">
+            <div>
+              <div class="pt-name">场次结算产出发放</div>
+              <div class="pt-src srcA">来源 A · 交易产出（增长×15%，1:1）</div>
+            </div>
+            <div class="pt-val num">+45.00</div>
+          </div>
+          <div class="point-row">
+            <div>
+              <div class="pt-name">每日签到</div>
+              <div class="pt-src srcB">来源 B · 行为奖励（1 Drama = 1 积分）</div>
+            </div>
+            <div class="pt-val num">+1.00</div>
+          </div>
+          <div class="point-row">
+            <div>
+              <div class="pt-name">邀请好友完成首次预约</div>
+              <div class="pt-src srcB">来源 B · 行为奖励（1 Drama = 1 积分）</div>
+            </div>
+            <div class="pt-val num">+20.00</div>
+          </div>
+          <div class="point-row">
+            <div>
+              <div class="pt-name">剧本评价被采纳</div>
+              <div class="pt-src srcB">来源 B · 行为奖励（1 Drama = 1 积分）</div>
+            </div>
+            <div class="pt-val num">+5.00</div>
+          </div>
+          <div class="salt-note" style="margin:12px 0 0">
+            积分与 Drama 按 <b>1 : 1</b> 对应（1 Drama = 1 积分）；积分仅用于平台内权益兑换，<b>不可兑回 Drama / USDT</b>。
+          </div>
+        </div>
+
+        <!-- 设置 -->
+        <div class="menu-list">
+          <div class="menu-row" onclick="toast('当前网络：BSC Mainnet · chainId 56（唯一上线链）')">
+            <div class="m-label">⛓️ 链与网络</div>
+            <div class="m-right">BSC Mainnet · 56 ›</div>
+          </div>
+          <div class="menu-row" onclick="toast('USDT 合约：0x55d3…7955（省略展示）')">
+            <div class="m-label">💵 支付资产</div>
+            <div class="m-right">USDT (BSC) · 0x55d3…7955 ›</div>
+          </div>
+          <div class="menu-row" onclick="toast('已切换为简体中文')">
+            <div class="m-label">🌐 语言</div>
+            <div class="m-right">简体中文 ›</div>
+          </div>
+          <div class="menu-row" onclick="toast('通知设置已保存')">
+            <div class="m-label">🔔 场次与订单通知</div>
+            <div class="m-right">已开启 ›</div>
+          </div>
+          <div class="menu-row" onclick="toast('平台展示的历史日增为历史口径，仅供参考，不构成任何承诺')">
+            <div class="m-label">📄 规则与风险告知</div>
+            <div class="m-right">›</div>
+          </div>
+          <div class="menu-row" onclick="logout()">
+            <div class="m-label">🚪 断开钱包</div>
+            <div class="m-right">›</div>
+          </div>
+        </div>
+        <div style="height:12px"></div>
+      </div>
+    </div>
+
+    <!-- 底部 Tab -->
+    <div class="tabbar" id="tabbar">
+      <div class="tab-item active" data-tab="home" onclick="switchTab('home')"><span class="t-ico">🏠</span>首页</div>
+      <div class="tab-item" data-tab="market" onclick="switchTab('market')"><span class="t-ico">🏪</span>市场</div>
+      <div class="tab-item" data-tab="holdings" onclick="switchTab('holdings')"><span class="t-ico">📜</span>持仓</div>
+      <div class="tab-item" data-tab="profile" onclick="switchTab('profile')"><span class="t-ico">👤</span>我的</div>
+    </div>
+
+    <!-- ============ 6. 支付弹层 ============ -->
+    <div class="mask" id="mask-pay">
+      <div class="sheet">
+        <div class="sheet-title">
+          <span>BSC 链上支付</span>
+          <button class="sheet-close" onclick="closeMask('mask-pay')">✕</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:4px">
+          <span class="tag primary-bg">BSC Mainnet · chainId 56</span>
+          <span class="tag surface">支付资产 USDT</span>
+        </div>
+
+        <div class="pay-amount-box">
+          <div class="pa-label" id="pay-title">应付金额</div>
+          <div class="pa-val num"><span id="pay-amount">1,075.37</span><small> USDT</small></div>
+        </div>
+
+        <div class="kv-row">
+          <div class="k">收款地址</div>
+          <div class="v"><span class="addr num">0x9F4c…A21b</span><button class="copy-btn" onclick="copyAddr('0x9F4c…A21b')">复制</button></div>
+        </div>
+        <div class="kv-row">
+          <div class="k">USDT 合约</div>
+          <div class="v"><span class="addr num">0x55d3…7955</span><span style="font-size:11px;color:var(--muted)">（BSC 官方口径）</span></div>
+        </div>
+        <div class="kv-row">
+          <div class="k">Gas 预估</div>
+          <div class="v num">≈ 0.0008 BNB</div>
+        </div>
+        <div class="kv-row">
+          <div class="k">到账确认</div>
+          <div class="v num">15 确认 ≈ 45 秒</div>
+        </div>
+
+        <div class="salt-note">
+          <b>盐值说明</b>：本单金额含系统识别码 <b class="num">0.37</b>（盐值），用于将您的链上转账与本订单唯一匹配。请严格按照上方展示金额支付，金额不一致将无法自动入账。
+        </div>
+
+        <button class="btn" onclick="startPayStatus()">拉起钱包签名</button>
+        <div class="siwe-note">将在您的钱包内弹出签名 / 转账确认，本平台不会代扣任何资产。</div>
+      </div>
+    </div>
+
+    <!-- 支付状态页（弹层内第二步） -->
+    <div class="mask" id="mask-status">
+      <div class="sheet">
+        <div class="sheet-title">
+          <span>支付状态</span>
+          <button class="sheet-close" onclick="closeMask('mask-status')">✕</button>
+        </div>
+
+        <div class="status-steps">
+          <div class="status-step active" id="step1">
+            <div class="step-ico">1</div>
+            <div class="step-txt">
+              <div class="st-title">广播中</div>
+              <div class="st-desc">交易已提交至 BSC 网络 · TxHash：<span class="num">0xabc…9d3</span></div>
+            </div>
+          </div>
+          <div class="status-step" id="step2">
+            <div class="step-ico">2</div>
+            <div class="step-txt">
+              <div class="st-title">确认中 <span class="confirm-progress num" id="confirm-num">0 / 15</span></div>
+              <div class="st-desc">区块确认 15 确认 ≈ 45 秒，确认完成后自动入账</div>
+            </div>
+          </div>
+          <div class="status-step" id="step3">
+            <div class="step-ico">3</div>
+            <div class="step-txt">
+              <div class="st-title">已入账</div>
+              <div class="st-desc" id="step3-desc">Drama 余额与订单状态已更新，可前往持仓查看</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" id="btn-next-status" onclick="advancePayStatus()">下一步（模拟推进）</button>
+        <div class="siwe-note">原型演示：点击按钮模拟链上状态推进；正式版本将由链上事件自动驱动。</div>
+      </div>
+    </div>
+
+    <!-- ============ 7. 抢购确认弹层 ============ -->
+    <div class="mask" id="mask-confirm">
+      <div class="sheet">
+        <div class="sheet-title">
+          <span>抢购确认</span>
+          <button class="sheet-close" onclick="closeMask('mask-confirm')">✕</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <span class="tag primary-bg" id="confirm-session">普通区 · 每日 16:00</span>
+          <span class="tag surface">1 Drama = 1 USDT</span>
+        </div>
+
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px">选择档位</div>
+
+        <div class="tier-row disabled">
+          <div>
+            <div class="tr-range num">300 – 1,000</div>
+            <div class="tr-fee">手续费：待确认 · 暂不可预约</div>
+          </div>
+          <div class="tr-check"></div>
+        </div>
+        <div class="tier-row selected" data-fee="75" data-base="1000" onclick="pickTier(this)">
+          <div>
+            <div class="tr-range num">1,000 – 5,000</div>
+            <div class="tr-fee num">手续费：75</div>
+          </div>
+          <div class="tr-check"></div>
+        </div>
+        <div class="tier-row" data-fee="240" data-base="5000" onclick="pickTier(this)">
+          <div>
+            <div class="tr-range num">5,000 – 12,000</div>
+            <div class="tr-fee num">手续费：240</div>
+          </div>
+          <div class="tr-check"></div>
+        </div>
+        <div class="tier-row" data-fee="450" data-base="12000" onclick="pickTier(this)">
+          <div>
+            <div class="tr-range num">12,000 – 35,000</div>
+            <div class="tr-fee num">手续费：450</div>
+          </div>
+          <div class="tr-check"></div>
+        </div>
+
+        <div class="confirm-total num" id="confirm-total">
+          订阅本金：1,000.00 Drama<br>
+          手续费：75.00 Drama<br>
+          应付合计：1,075.00 Drama（1 Drama = 1 USDT）
+        </div>
+
+        <button class="btn" onclick="confirmPurchase()">确认并进入支付</button>
+        <div class="risk-note" style="margin:10px 0 0">预约成功后名额锁定，支付金额含盐值识别码以便链上对账。历史数据仅供参考，不构成任何承诺。</div>
+      </div>
+    </div>
+
+  </div><!-- /app -->
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ================= 路由与 Tab ================= */
+var TAB_TITLES = { home: '首页', market: '市场', holdings: '持仓', profile: '我的' };
+
+function switchTab(tab) {
+  var pages = ['home', 'market', 'holdings', 'profile'];
+  for (var i = 0; i < pages.length; i++) {
+    document.getElementById('page-' + pages[i]).classList.toggle('active', pages[i] === tab);
+  }
+  var tabs = document.querySelectorAll('.tab-item');
+  for (var j = 0; j < tabs.length; j++) {
+    tabs[j].classList.toggle('active', tabs[j].getAttribute('data-tab') === tab);
+  }
+  document.getElementById('header-title').textContent = TAB_TITLES[tab];
+  document.getElementById('app-body').scrollTop = 0;
+}
+
+/* ================= 登录流程 ================= */
+function onWalletPick(name) {
+  toast('已选择 ' + name + ' · 请确认钱包已切至 BSC（chainId 56）');
+  document.getElementById('btn-siwe').textContent = '签名登录（SIWE）· 已连接 ' + name;
+}
+
+function doSiweLogin() {
+  document.getElementById('page-login').classList.remove('active');
+  document.getElementById('app').style.display = 'flex';
+  switchTab('home');
+  toast('SIWE 签名成功 · 欢迎回到 DramaX');
+}
+
+function logout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('page-login').classList.add('active');
+}
+
+/* ================= 弹层通用 ================= */
+function closeMask(id) { document.getElementById(id).classList.remove('open'); }
+function openMask(id) { document.getElementById(id).classList.add('open'); }
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+}
+
+function copyAddr(addr) { toast('已复制：' + addr); }
+
+/* ================= 支付弹层 ================= */
+function openPay(title, amount) {
+  document.getElementById('pay-title').textContent = title;
+  document.getElementById('pay-amount').textContent = amount;
+  resetPayStatus();
+  closeMask('mask-status');
+  openMask('mask-pay');
+}
+
+/* ================= 支付状态模拟 ================= */
+function resetPayStatus() {
+  setStep('step1', 'active');
+  setStep('step2', '');
+  setStep('step3', '');
+  document.getElementById('confirm-num').textContent = '0 / 15';
+  document.getElementById('btn-next-status').textContent = '下一步（模拟推进）';
+}
+
+function setStep(id, cls) {
+  var el = document.getElementById(id);
+  el.classList.remove('active', 'done');
+  if (cls) el.classList.add(cls);
+}
+
+function startPayStatus() {
+  resetPayStatus();
+  closeMask('mask-pay');
+  openMask('mask-status');
+}
+
+function advancePayStatus() {
+  var step2 = document.getElementById('step2');
+  var step3 = document.getElementById('step3');
+  var num = document.getElementById('confirm-num');
+  var btn = document.getElementById('btn-next-status');
+
+  if (document.getElementById('step1').classList.contains('active')) {
+    // 广播中 → 确认中
+    setStep('step1', 'done');
+    setStep('step2', 'active');
+    num.textContent = '5 / 15';
+    btn.textContent = '下一步（模拟推进）';
+  } else if (step2.classList.contains('active')) {
+    if (num.textContent === '5 / 15') {
+      num.textContent = '15 / 15';
+      btn.textContent = '完成确认';
+    } else {
+      // 确认完成 → 已入账
+      setStep('step2', 'done');
+      setStep('step3', 'done');
+      btn.textContent = '完成';
+      btn.onclick = function () {
+        closeMask('mask-status');
+        toast('入账成功 · 订单已生效');
+        btn.onclick = advancePayStatus;
+      };
+    }
+  }
+}
+
+/* ================= 抢购确认 ================= */
+var pickedTier = { fee: 75, base: 1000 };
+
+function openConfirm(sessionName) {
+  document.getElementById('confirm-session').textContent = sessionName;
+  openMask('mask-confirm');
+}
+
+function pickTier(row) {
+  if (row.classList.contains('disabled')) {
+    toast('该档位暂不可预约');
+    return;
+  }
+  var rows = document.querySelectorAll('#mask-confirm .tier-row');
+  for (var i = 0; i < rows.length; i++) rows[i].classList.remove('selected');
+  row.classList.add('selected');
+  pickedTier.fee = parseFloat(row.getAttribute('data-fee'));
+  pickedTier.base = parseFloat(row.getAttribute('data-base'));
+  renderConfirmTotal();
+}
+
+function renderConfirmTotal() {
+  var fee = pickedTier.fee.toFixed(2);
+  var base = pickedTier.base.toFixed(2);
+  var total = (pickedTier.base + pickedTier.fee).toFixed(2);
+  document.getElementById('confirm-total').innerHTML =
+    '订阅本金：' + base + ' Drama<br>' +
+    '手续费：' + fee + ' Drama<br>' +
+    '应付合计：' + total + ' Drama（1 Drama = 1 USDT）';
+}
+
+function confirmPurchase() {
+  var base = pickedTier.base;
+  var total = pickedTier.base + pickedTier.fee;
+  // 盐值：金额含系统识别码 0.37
+  var saltAmount = total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',').slice(0, -2) + '37';
+  closeMask('mask-confirm');
+  openPay('抢购支付 · ' + base.toLocaleString() + ' Drama 档位', saltAmount);
+}
+
+/* ================= P2P 挂单倒计时（15 分钟广播窗口示意） ================= */
+function tickCountdowns() {
+  var els = document.querySelectorAll('[data-cd]');
+  for (var i = 0; i < els.length; i++) {
+    var left = parseInt(els[i].getAttribute('data-cd'), 10);
+    if (left <= 0) { els[i].textContent = '已超时'; continue; }
+    left -= 1;
+    els[i].setAttribute('data-cd', left);
+    var m = Math.floor(left / 60), s = left % 60;
+    els[i].textContent = '支付剩余 ' + ('0' + m).slice(-2) + ':' + ('0' + s).slice(-2);
+  }
+}
+setInterval(tickCountdowns, 1000);
+</script>
+</body>
+</html>

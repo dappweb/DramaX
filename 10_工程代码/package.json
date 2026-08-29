@@ -1,0 +1,12 @@
+{
+  "name": "dramax",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "test": "pnpm --filter @dramax/shared test",
+    "content:deploy": "pnpm test && pnpm -r --if-present lint && pnpm -r --if-present build && wrangler deploy && echo '[verify-live] 请访问 api 域名 /health 确认部署'"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+
+# wrangler / cloudflare
+.wrangler/
+.dev.vars
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+*.log
+*.tsbuildinfo

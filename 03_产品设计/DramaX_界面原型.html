@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="OtkkYwbdtDTmaMrddwaltN">
+<head data-page-node-id="nqyl0ciDglBABYBiED7NZR">
+<meta charset="UTF-8" data-page-node-id="qi5nAmNVCeKc0fotiE2GXY">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="io1JlfdCYWiH0AEpAIeEtk">
+<title>DramaX · 短剧剧本交易平台 · 界面原型</title>
+<style>
+/* ============================================================
+   DramaX Design Tokens（与 UI 设计方案一致）
+   ============================================================ */
+:root{
+  --primary-600:#534AB7;
+  --primary-700:#3C3489;
+  --primary-50:#EEEDFE;
+  --ink:#26215C;
+  --price:#993C1D;
+  --text:#2C2C2A;
+  --text-sub:#888780;
+  --bg-page:#F1EFE8;
+  --bg-card:#FFFFFF;
+  --line:rgba(44,44,42,.14);
+  --gray-tag-bg:#F1EFE8;
+  --gray-tag-text:#5F5E5A;
+  --success:#2E7D4F;
+  --danger:#B4432A;
+  --radius-tag:999px;
+  --radius-card:12px;
+  --radius-modal:16px;
+  --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  font-family:var(--font);
+  background:#E7E4DB;
+  color:var(--text);
+  font-size:15px;
+  line-height:1.5;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  padding:24px 0;
+}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
+
+/* ============ 手机壳 ============ */
+.phone{
+  width:375px;height:812px;
+  background:var(--bg-page);
+  border-radius:40px;
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 24px 60px rgba(38,33,92,.18),0 0 0 10px #1C1A16;
+  overflow:hidden;
+  position:relative;
+  display:flex;flex-direction:column;
+}
+.statusbar{
+  height:44px;flex:none;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;font-size:12px;font-weight:600;color:var(--text);
+  background:transparent;position:relative;z-index:5;
+}
+.statusbar .notch{
+  position:absolute;left:50%;top:8px;transform:translateX(-50%);
+  width:110px;height:26px;border-radius:14px;background:#1C1A16;
+}
+.statusbar .icons{display:flex;gap:4px;align-items:center;}
+.home-indicator{
+  position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+  width:120px;height:5px;border-radius:3px;background:rgba(44,44,42,.85);
+  z-index:60;pointer-events:none;
+}
+.app{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+
+/* ============ 页面容器 ============ */
+.page{flex:1;overflow-y:auto;display:none;padding-bottom:88px;}
+.page.active{display:block;}
+.page::-webkit-scrollbar{display:none;}
+
+/* ============ 顶栏 ============ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 16px 12px;
+}
+.logo{display:flex;align-items:baseline;gap:6px;}
+.logo .mark{
+  font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--primary-700);
+}
+.logo .mark b{color:var(--primary-600);}
+.logo .beta{
+  font-size:10px;color:var(--text-sub);border:0.5px solid var(--line);
+  border-radius:var(--radius-tag);padding:1px 6px;
+}
+.bell{
+  width:40px;height:40px;border-radius:12px;border:0.5px solid var(--line);
+  background:var(--bg-card);display:flex;align-items:center;justify-content:center;
+  position:relative;cursor:pointer;
+}
+.bell .dot{
+  position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%;
+  background:var(--danger);border:1.5px solid #fff;
+}
+
+/* ============ 资产两联卡 ============ */
+.asset-card{
+  margin:4px 16px 0;background:var(--primary-700);border-radius:var(--radius-card);
+  padding:16px;color:#fff;display:flex;gap:0;
+}
+.asset-cell{flex:1;min-width:0;}
+.asset-cell + .asset-cell{border-left:0.5px solid rgba(255,255,255,.25);padding-left:16px;margin-left:16px;}
+.asset-cell .label{font-size:12px;color:rgba(255,255,255,.72);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.asset-cell .value{font-size:24px;font-weight:700;margin-top:4px;letter-spacing:.2px;}
+.asset-badge{
+  font-size:10px;border-radius:var(--radius-tag);padding:1px 7px;
+  background:rgba(255,255,255,.16);color:#fff;white-space:nowrap;
+}
+.asset-note{
+  margin:8px 16px 0;font-size:12px;color:var(--text-sub);
+  display:flex;align-items:flex-start;gap:6px;
+}
+.asset-note .info-i{
+  flex:none;width:14px;height:14px;border-radius:50%;border:0.5px solid var(--text-sub);
+  font-size:9px;display:flex;align-items:center;justify-content:center;margin-top:2px;color:var(--text-sub);
+}
+
+/* ============ 专区切换 ============ */
+.zone-switch{
+  margin:16px 16px 0;background:var(--bg-card);border-radius:var(--radius-card);
+  border:0.5px solid var(--line);padding:4px;display:flex;gap:4px;
+}
+.zone-switch button{
+  flex:1;height:38px;border:none;background:transparent;border-radius:9px;
+  font-family:var(--font);font-size:14px;font-weight:600;color:var(--gray-tag-text);
+  cursor:pointer;transition:all .15s;
+}
+.zone-switch button.on-innov{background:var(--primary-50);color:var(--primary-600);}
+.zone-switch button.on-normal{background:var(--gray-tag-bg);color:var(--gray-tag-text);}
+
+/* ============ 专区标签 ============ */
+.ztag{font-size:11px;font-weight:600;border-radius:var(--radius-tag);padding:2px 8px;white-space:nowrap;}
+.ztag.innov{background:var(--primary-50);color:var(--primary-600);}
+.ztag.normal{background:var(--gray-tag-bg);color:var(--gray-tag-text);}
+
+/* ============ 风险提示条 ============ */
+.risk-bar{
+  margin-top:6px;font-size:12px;color:var(--text-sub);
+  background:var(--gray-tag-bg);border-radius:8px;padding:5px 8px;
+  display:flex;align-items:center;gap:5px;
+}
+.risk-bar::before{content:"!";flex:none;width:14px;height:14px;border-radius:50%;
+  background:var(--gray-tag-text);color:#fff;font-size:9px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;}
+
+/* ============ 今日场次卡 ============ */
+.section-title{
+  margin:20px 16px 10px;display:flex;align-items:center;justify-content:space-between;
+}
+.section-title h2{font-size:16px;font-weight:700;color:var(--ink);}
+.section-title .more{font-size:12px;color:var(--primary-600);cursor:pointer;}
+.session-card{
+  margin:0 16px;background:var(--bg-card);border-radius:var(--radius-card);
+  border:0.5px solid var(--line);padding:16px;
+}
+.session-card .row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.session-card .time{font-size:15px;font-weight:700;color:var(--ink);}
+.session-card .range{font-size:15px;font-weight:700;color:var(--price);}
+.session-card .meta{
+  margin-top:8px;font-size:12px;color:var(--text-sub);
+  display:flex;flex-direction:column;gap:3px;
+}
+.session-card .meta b{color:var(--text);font-weight:600;}
+.btn{
+  height:44px;border:none;border-radius:var(--radius-card);
+  font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:0 18px;transition:opacity .15s;
+}
+.btn:active{opacity:.8;}
+.btn-primary{background:var(--primary-600);color:#fff;}
+.btn-ghost{background:transparent;color:var(--primary-600);border:0.5px solid var(--primary-600);}
+.btn-gray{background:var(--gray-tag-bg);color:var(--gray-tag-text);cursor:default;}
+.btn-block{width:100%;}
+.session-card .btn-wrap{margin-top:12px;}
+.session-card .irrevocable{margin-top:8px;font-size:12px;color:var(--text-sub);}
+
+/* ============ 剧本卡片列表 ============ */
+.script-list{padding:0 16px;display:flex;flex-direction:column;gap:12px;}
+.script-card{
+  background:var(--bg-card);border-radius:var(--radius-card);
+  border:0.5px solid var(--line);padding:12px;
+  display:flex;gap:12px;align-items:stretch;
+}
+.cover{
+  flex:none;width:72px;height:96px;border-radius:8px;
+  display:flex;align-items:flex-end;padding:6px;overflow:hidden;
+}
+.cover .cover-t{
+  font-size:12px;font-weight:700;color:#fff;line-height:1.3;
+  text-shadow:0 1px 3px rgba(0,0,0,.35);
+}
+.cv1{background:linear-gradient(160deg,#6A61C9,#3C3489);}
+.cv2{background:linear-gradient(160deg,#A8836B,#6E4A33);}
+.cv3{background:linear-gradient(160deg,#8A9B6E,#4F5E3A);}
+.cv4{background:linear-gradient(160deg,#C08A8A,#8A4A4A);}
+.cv5{background:linear-gradient(160deg,#7A8CA0,#3E4E60);}
+.cv6{background:linear-gradient(160deg,#B09A55,#7A6528);}
+.script-card .info{flex:1;min-width:0;display:flex;flex-direction:column;}
+.script-card .t{font-size:15px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;}
+.script-card .desc{font-size:12px;color:var(--text-sub);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.script-card .price-row{margin-top:auto;display:flex;align-items:baseline;gap:4px;padding-top:8px;}
+.script-card .price{font-size:17px;font-weight:700;color:var(--price);}
+.script-card .price-unit{font-size:11px;color:var(--price);}
+.script-card .grow{font-size:12px;color:var(--price);margin-left:auto;}
+
+/* ============ Tab2 抢购 ============ */
+.sub-head{margin:12px 16px 8px;font-size:16px;font-weight:700;color:var(--ink);}
+.day-pick{display:flex;gap:8px;padding:0 16px;}
+.day-pick .d{
+  flex:1;height:52px;border-radius:var(--radius-card);background:var(--bg-card);
+  border:0.5px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;gap:1px;
+}
+.day-pick .d .w{font-size:11px;color:var(--text-sub);}
+.day-pick .d .n{font-size:16px;font-weight:700;color:var(--text);}
+.day-pick .d.on{background:var(--primary-50);border-color:var(--primary-600);}
+.day-pick .d.on .n{color:var(--primary-600);}
+.timeline{
+  display:flex;gap:0;margin:16px 16px 0;position:relative;align-items:center;
+}
+.timeline .t-item{flex:1;text-align:center;position:relative;}
+.timeline .t-item .tt{font-size:12px;color:var(--text-sub);margin-bottom:6px;}
+.timeline .t-item .pt{
+  width:10px;height:10px;border-radius:50%;background:#D6D3C8;margin:0 auto;position:relative;z-index:2;
+}
+.timeline .t-item.done .pt{background:var(--primary-600);}
+.timeline .t-item.cur .pt{background:var(--primary-600);box-shadow:0 0 0 4px var(--primary-50);}
+.timeline .t-item.cur .tt{color:var(--primary-600);font-weight:700;}
+.timeline::before{
+  content:"";position:absolute;top:23px;left:10%;right:10%;height:0.5px;background:var(--line);
+}
+.session-item{
+  margin:0 16px 10px;background:var(--bg-card);border-radius:var(--radius-card);
+  border:0.5px solid var(--line);padding:12px 14px;
+  display:flex;align-items:center;gap:12px;
+}
+.session-item .when{flex:none;width:52px;text-align:center;}
+.session-item .when .h{font-size:16px;font-weight:700;color:var(--ink);}
+.session-item .when .z{margin-top:3px;}
+.session-item .mid{flex:1;min-width:0;}
+.session-item .mid .rng{font-size:14px;font-weight:700;color:var(--price);}
+.session-item .mid .sub{font-size:12px;color:var(--text-sub);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
+.session-item .mid .sub b{color:var(--text);font-weight:600;}
+.session-item .act{flex:none;}
+.btn-sm{height:36px;padding:0 14px;font-size:13px;border-radius:var(--radius-tag);}
+.btn-disabled{background:var(--gray-tag-bg);color:var(--gray-tag-text);cursor:default;}
+.btn-booked{background:var(--primary-50);color:var(--primary-600);cursor:default;}
+.reserve-list{display:flex;flex-direction:column;gap:10px;padding:0 16px;}
+.reserve-item{
+  background:var(--bg-card);border-radius:var(--radius-card);border:0.5px solid var(--line);
+  padding:12px 14px;
+}
+.reserve-item .r1{display:flex;align-items:center;gap:8px;}
+.reserve-item .r1 .st{font-size:13px;font-weight:700;}
+.reserve-item .r1 .tm{font-size:12px;color:var(--text-sub);margin-left:auto;}
+.reserve-item .r2{margin-top:6px;font-size:13px;color:var(--text-sub);display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;}
+.reserve-item .r2 b{color:var(--text);}
+.st-reserving{color:var(--primary-600);}
+.st-won{color:var(--price);}
+.st-failed{color:var(--text-sub);}
+.cnt{font-weight:700;color:var(--danger);}
+.link{color:var(--primary-600);font-size:12px;cursor:pointer;background:none;border:none;font-family:var(--font);padding:0;}
+
+/* ============ Tab3 持仓 ============ */
+.pos-tabs{display:flex;gap:8px;padding:4px 16px 0;overflow-x:auto;}
+.pos-tabs::-webkit-scrollbar{display:none;}
+.pos-tabs .pt-btn{
+  flex:none;height:32px;padding:0 14px;border-radius:var(--radius-tag);border:0.5px solid var(--line);
+  background:var(--bg-card);font-size:12px;color:var(--gray-tag-text);cursor:pointer;font-family:var(--font);
+}
+.pos-tabs .pt-btn.on{background:var(--primary-50);border-color:var(--primary-600);color:var(--primary-600);font-weight:600;}
+.pos-card{
+  margin:0 16px 12px;background:var(--bg-card);border-radius:var(--radius-card);
+  border:0.5px solid var(--line);padding:14px;
+}
+.pos-card .p1{display:flex;align-items:center;gap:8px;}
+.pos-card .p1 .nm{font-size:15px;font-weight:700;color:var(--ink);flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stbadge{flex:none;font-size:11px;font-weight:700;border-radius:var(--radius-tag);padding:3px 9px;}
+.st-HOLDING{background:var(--primary-50);color:var(--primary-600);}
+.st-MATURED{background:#F6EADB;color:#8A5A20;}
+.st-READY_TO_LIST{background:var(--gray-tag-bg);color:var(--gray-tag-text);}
+.st-LISTED{background:#E4EFE8;color:var(--success);}
+.st-INSUFFICIENT{background:#F7E5DF;color:var(--danger);}
+.st-SELLING{background:#E4EFE8;color:var(--success);}
+.st-SOLD{background:var(--gray-tag-bg);color:var(--gray-tag-text);}
+.pos-card .grid{
+  margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;
+}
+.pos-card .grid .cell .k{font-size:11px;color:var(--text-sub);}
+.pos-card .grid .cell .v{font-size:14px;font-weight:700;color:var(--text);margin-top:1px;}
+.pos-card .grid .cell .v.prc{color:var(--price);}
+.pos-card .grid .cell .v.growv{color:var(--price);}
+.pos-card .grid .cell .v.gap{color:var(--danger);}
+.pos-card .actions{margin-top:10px;display:flex;gap:8px;}
+.pos-card .actions .btn{height:36px;font-size:13px;padding:0 14px;border-radius:var(--radius-tag);}
+.gap-note{
+  margin-top:10px;background:#F7E5DF;border-radius:8px;padding:8px 10px;
+  font-size:12px;color:var(--danger);line-height:1.6;
+}
+.gap-note b{font-size:14px;}
+/* 结算瀑布 */
+.waterfall-toggle{
+  margin-top:10px;width:100%;height:36px;border:none;background:var(--gray-tag-bg);
+  border-radius:8px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--gray-tag-text);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
+}
+.waterfall{margin-top:10px;background:var(--bg-page);border-radius:8px;padding:12px;}
+.waterfall h4{font-size:12px;font-weight:700;color:var(--ink);margin-bottom:8px;}
+.wf-line{
+  display:flex;align-items:baseline;font-size:12px;color:var(--text-sub);
+  padding:4px 0;gap:8px;
+}
+.wf-line .nm{flex:1;}
+.wf-line .amt{font-weight:600;color:var(--text);}
+.wf-line .amt.plus{color:var(--price);}
+.wf-line .amt.minus{color:var(--text-sub);}
+.wf-sub{padding-left:16px;font-size:11px;}
+.wf-total{
+  border-top:0.5px solid var(--line);margin-top:6px;padding-top:8px;
+  font-size:13px;font-weight:700;color:var(--ink);
+}
+.wf-total .amt{color:var(--price);}
+.wf-note{margin-top:6px;font-size:11px;color:var(--text-sub);line-height:1.6;}
+
+/* ============ Tab4 我的 ============ */
+.me-head{
+  margin:8px 16px 0;background:var(--bg-card);border-radius:var(--radius-card);
+  border:0.5px solid var(--line);padding:16px;display:flex;align-items:center;gap:12px;
+}
+.avatar{
+  flex:none;width:52px;height:52px;border-radius:50%;background:var(--primary-50);
+  color:var(--primary-600);font-size:20px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.me-head .nm{font-size:16px;font-weight:700;color:var(--ink);}
+.me-head .uid{font-size:12px;color:var(--text-sub);margin-top:2px;}
+.kyc{
+  margin-left:auto;flex:none;font-size:11px;font-weight:700;border-radius:var(--radius-tag);
+  padding:4px 10px;background:#E4EFE8;color:var(--success);display:flex;align-items:center;gap:4px;
+}
+.kyc.l2::after{content:"L2";}
+.wallet-card{
+  margin:12px 16px 0;background:var(--bg-card);border-radius:var(--radius-card);
+  border:0.5px solid var(--line);padding:16px;
+}
+.wallet-card .w-grid{display:flex;}
+.wallet-card .w-cell{flex:1;}
+.wallet-card .w-cell + .w-cell{border-left:0.5px solid var(--line);padding-left:14px;margin-left:14px;}
+.wallet-card .w-cell .k{font-size:12px;color:var(--text-sub);}
+.wallet-card .w-cell .v{font-size:20px;font-weight:700;color:var(--ink);margin-top:2px;}
+.wallet-card .w-cell .frozen{font-size:11px;color:var(--text-sub);margin-top:2px;}
+.wallet-card .w-cell .frozen b{color:var(--primary-600);}
+.pt-split{margin-top:12px;background:var(--bg-page);border-radius:8px;padding:10px 12px;
+  display:flex;gap:12px;align-items:center;font-size:12px;color:var(--text-sub);}
+.pt-split .num{color:var(--text);font-weight:600;}
+.pt-split .src{font-size:10px;border-radius:var(--radius-tag);padding:1px 6px;background:var(--primary-50);color:var(--primary-600);}
+.pt-split .src.b{background:var(--gray-tag-bg);color:var(--gray-tag-text);}
+.w-actions{margin-top:12px;display:flex;gap:8px;}
+.w-actions .btn{flex:1;height:40px;font-size:13px;border-radius:10px;}
+.menu-group{
+  margin:12px 16px 0;background:var(--bg-card);border-radius:var(--radius-card);
+  border:0.5px solid var(--line);overflow:hidden;
+}
+.menu-item{
+  width:100%;display:flex;align-items:center;gap:10px;padding:14px 16px;
+  background:transparent;border:none;border-bottom:0.5px solid var(--line);
+  font-family:var(--font);font-size:14px;color:var(--text);cursor:pointer;text-align:left;
+}
+.menu-item:last-child{border-bottom:none;}
+.menu-item .mi-icon{
+  flex:none;width:30px;height:30px;border-radius:8px;background:var(--primary-50);
+  color:var(--primary-600);display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.menu-item .mi-sub{font-size:12px;color:var(--text-sub);margin-top:1px;}
+.menu-item .mi-body{flex:1;min-width:0;}
+.menu-item .arrow{color:#C9C6BC;font-size:14px;flex:none;}
+.menu-item .extra{margin-left:auto;font-size:12px;color:var(--text-sub);flex:none;}
+.p2p-item{
+  margin:0 16px 10px;background:var(--bg-card);border-radius:var(--radius-card);
+  border:0.5px solid var(--line);padding:12px 14px;
+}
+.p2p-item .q1{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ink);}
+.p2p-item .q1 .amt{margin-left:auto;color:var(--price);}
+.p2p-item .q2{margin-top:5px;font-size:12px;color:var(--text-sub);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.txid{font-size:11px;background:var(--bg-page);border-radius:6px;padding:2px 6px;font-family:ui-monospace,Menlo,monospace;}
+.tx-ok{color:var(--success);font-weight:600;}
+.tx-wait{color:#8A5A20;font-weight:600;}
+.team-card{
+  margin:0 16px;background:var(--bg-card);border-radius:var(--radius-card);
+  border:0.5px solid var(--line);padding:14px 16px;
+}
+.team-card .rate-row{display:flex;gap:8px;margin-top:10px;}
+.team-card .rate-box{flex:1;background:var(--bg-page);border-radius:8px;padding:8px 10px;text-align:center;}
+.team-card .rate-box .r{font-size:16px;font-weight:700;color:var(--primary-600);}
+.team-card .rate-box .g{font-size:11px;color:var(--text-sub);margin-top:1px;}
+.gen-bar{margin-top:12px;display:flex;gap:3px;height:8px;border-radius:4px;overflow:hidden;}
+.gen-bar .g13{flex:3;background:var(--primary-600);}
+.gen-bar .g410{flex:7;background:var(--primary-50);}
+.gen-legend{margin-top:6px;display:flex;justify-content:space-between;font-size:11px;color:var(--text-sub);}
+.gen-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:-1px;}
+
+/* ============ 底部 Tab 栏 ============ */
+.tabbar{
+  position:absolute;left:0;right:0;bottom:0;z-index:50;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
+  border-top:0.5px solid var(--line);
+  display:flex;padding:6px 8px 22px;
+}
+.tab{
+  flex:1;height:52px;border:none;background:transparent;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-family:var(--font);font-size:11px;color:var(--text-sub);
+}
+.tab .ic{font-size:20px;line-height:1;}
+.tab.on{color:var(--primary-600);font-weight:700;}
+
+/* ============ 弹层 ============ */
+.overlay{
+  position:absolute;inset:0;background:rgba(28,26,22,.5);z-index:100;
+  display:none;align-items:flex-end;
+}
+.overlay.show{display:flex;}
+.modal{
+  width:100%;background:var(--bg-card);border-radius:var(--radius-modal) var(--radius-modal) 0 0;
+  padding:20px 16px 34px;max-height:80%;overflow-y:auto;
+  animation:slideup .22s ease;
+}
+@keyframes slideup{from{transform:translateY(40px);opacity:.4;}to{transform:translateY(0);opacity:1;}}
+.modal .m-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.modal .m-head h3{font-size:17px;font-weight:700;color:var(--ink);}
+.m-close{
+  width:32px;height:32px;border-radius:50%;border:none;background:var(--bg-page);
+  font-size:14px;color:var(--gray-tag-text);cursor:pointer;
+}
+.m-rows{display:flex;flex-direction:column;gap:0;border:0.5px solid var(--line);border-radius:10px;overflow:hidden;}
+.m-row{display:flex;align-items:center;padding:11px 14px;background:var(--bg-card);
+  border-bottom:0.5px solid var(--line);font-size:13px;}
+.m-row:last-child{border-bottom:none;}
+.m-row .k{color:var(--text-sub);flex:1;}
+.m-row .v{font-weight:600;color:var(--text);text-align:right;}
+.m-row .v.prc{color:var(--price);}
+.m-warn{
+  margin-top:12px;background:#F7E5DF;border-radius:10px;padding:10px 12px;
+  font-size:12px;color:var(--danger);line-height:1.7;
+}
+.m-warn b{font-weight:700;}
+.m-tip{margin-top:10px;font-size:12px;color:var(--text-sub);line-height:1.7;}
+.m-tip b{color:var(--text);}
+.m-btns{margin-top:16px;display:flex;flex-direction:column;gap:8px;}
+/* 二次确认视图 */
+.confirm-view{display:none;}
+.confirm-view.show{display:block;}
+.net-pick{display:flex;gap:8px;margin-top:8px;}
+.net-opt{
+  flex:1;border:0.5px solid var(--line);border-radius:10px;padding:10px 12px;
+  cursor:pointer;background:var(--bg-card);
+}
+.net-opt .nn{font-size:13px;font-weight:700;color:var(--text);}
+.net-opt .nd{font-size:11px;color:var(--text-sub);margin-top:2px;}
+.net-opt.on{border-color:var(--primary-600);background:var(--primary-50);}
+.net-opt.on .nn{color:var(--primary-600);}
+.addr-box{
+  margin-top:12px;background:var(--bg-page);border-radius:10px;padding:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.addr-box .addr{flex:1;font-size:12px;font-family:ui-monospace,Menlo,monospace;color:var(--text);word-break:break-all;}
+.copy-btn{
+  flex:none;height:32px;padding:0 12px;border-radius:8px;border:0.5px solid var(--primary-600);
+  background:var(--primary-50);color:var(--primary-600);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);
+}
+.qr-holder{
+  margin:14px auto 0;width:140px;height:140px;border-radius:10px;border:0.5px solid var(--line);
+  background:
+    repeating-conic-gradient(var(--ink) 0% 25%, #fff 0% 50%) 0 0/14px 14px;
+  position:relative;
+}
+.qr-holder::after{
+  content:"扫码识别";position:absolute;left:50%;bottom:-22px;transform:translateX(-50%);
+  font-size:11px;color:var(--text-sub);white-space:nowrap;
+}
+.result-hero{text-align:center;padding:8px 0 4px;}
+.result-hero .ric{
+  width:60px;height:60px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:800;color:#fff;
+}
+.result-hero .ric.ok{background:var(--success);}
+.result-hero .ric.fail{background:var(--gray-tag-text);}
+.result-hero h3{font-size:18px;font-weight:700;color:var(--ink);margin-top:12px;}
+.result-hero p{font-size:13px;color:var(--text-sub);margin-top:4px;}
+.result-hero .big{font-size:22px;font-weight:700;color:var(--price);}
+/* Toast */
+.toast{
+  position:absolute;left:50%;bottom:110px;transform:translateX(-50%) translateY(8px);
+  background:rgba(28,26,22,.9);color:#fff;font-size:13px;border-radius:var(--radius-tag);
+  padding:9px 18px;z-index:200;opacity:0;pointer-events:none;transition:all .2s;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body data-page-node-id="EqPFHluILa8ZI9jMJuzQD4">
+
+<div class="phone" data-page-node-id="vqCCxYXQ4TdL4G6CyCRV7B">
+  <div class="statusbar" data-page-node-id="D14V0ocqRtETyrrACqQsuD">
+    <span class="num" data-page-node-id="zn5o8Lu5yFSEJXlmOpu07W">9:41</span>
+    <div class="notch" data-page-node-id="aPPny2oQdfAdPDTV0yh4kC"></div>
+    <div class="icons num" data-page-node-id="VhjirBPlFF6Bbj9kUpi5mz">􀙇 􀛨 􀟜</div>
+  </div>
+
+  <div class="app" data-page-node-id="c5bTvFCDX7YqMRjc49karl">
+
+    <!-- ================= Tab1 首页 ================= -->
+    <div class="page active" id="page-home" data-page-node-id="VqDUitJhfuckAG6TFMHztk">
+      <div class="topbar" data-page-node-id="YrZK1QoEBteCt6rarbgcOg">
+        <div class="logo" data-page-node-id="yYFW0h6JtwHQoPZMJ39R9B">
+          <span class="mark" data-page-node-id="Z0l7ZC01fWqvp2wfThtVyg">Drama<b data-page-node-id="tzSAlYr7fHqK7eOQEAG4Q5">X</b></span>
+          <span class="beta" data-page-node-id="n3JzBfQln5hfcVMtzFWao9">界面原型 V2.1</span>
+        </div>
+        <div class="bell" onclick="toast('暂无新通知（原型示意）')" data-page-node-id="FO8Z5YGKBdF8f44avz9Eb3">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C2C2A" stroke-width="1.8" stroke-linecap="round" data-page-node-id="ZOJCSBkKy8JHXmLsMUaZ6U"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" data-page-node-id="wpsfC1K7DxX8hK7XHOViIe"/><path d="M10 20a2 2 0 0 0 4 0" data-page-node-id="qGI6h9NrpxDcR8NTAezGHn"/></svg>
+          <span class="dot" data-page-node-id="tF0CWP3FvhVH4CFI3U7ZeK"></span>
+        </div>
+      </div>
+
+      <!-- 资产两联卡（V2.1：GIP 已并入生态积分，仅 Drama + 生态积分） -->
+      <div class="asset-card" data-page-node-id="CQPW1KIBZdH9aXmCnjEHFu">
+        <div class="asset-cell" data-page-node-id="CEqVohYTFrPpg8x1IrhdDk">
+          <div class="label" data-page-node-id="th9SY2m2EXJfVIFFkuhCVR">Drama 权益资产</div>
+          <div class="value num" data-page-node-id="hFnV4DMxuDnQvUPiA0gcXE">2,540</div>
+        </div>
+        <div class="asset-cell" data-page-node-id="E0znsiJibL2kfhb2pVk5VC">
+          <div class="label" data-page-node-id="YVC28C8B0tHZ96sYYD7Tl2">生态积分 <span class="asset-badge" data-page-node-id="9hoAlXY4PC1AH3jdvYbmS0">来源A · 1,000</span> <span class="asset-badge" data-page-node-id="2lJBeC8WXpAWcokYt1aV6x">来源B · 120</span></div>
+          <div class="value num" data-page-node-id="96NVZXazAarADj2YNXYOJ3">1,120</div>
+        </div>
+      </div>
+      <div class="asset-note" data-page-node-id="ZtoP4whrj1XyEodTcuAEsM">
+        <span class="info-i" data-page-node-id="dddqkyzrJaKcPWEa9ABdaa">i</span>
+        <span data-page-node-id="BjiBVGjyrHD3j6M1BM2W2d">V2.1 起 GIP 已并入生态积分统一展示；生态积分用于手续费抵扣与社区治理，来源A 积分可按规则兑换 USDT（兑换比例以平台公告为准）。</span>
+      </div>
+
+      <!-- 专区切换 -->
+      <div class="zone-switch" id="zoneSwitch" data-page-node-id="kKGFkHPxVSTCHHAZkIZ8ta">
+        <button class="on-normal" data-zone="normal" onclick="switchZone('normal')" data-page-node-id="F9GdETlagE2FI538gCagRj">普通区</button>
+        <button data-zone="innov" onclick="switchZone('innov')" data-page-node-id="37jAakTKTU5Snea3crSJ15">创新区</button>
+      </div>
+
+      <!-- 今日场次 -->
+      <div class="section-title" data-page-node-id="ZJ5ORpm7JiNaO5qZyle1Xr">
+        <h2 data-page-node-id="ADDcO3oIlezzvIIhnXoDzL">今日场次</h2>
+        <span class="more" onclick="gotoTab('buy')" data-page-node-id="ewZj5ihhAcEkerdmKqH5rM">全部场次 ›</span>
+      </div>
+      <div class="session-card" id="todaySession" data-page-node-id="VhkW5GctLl1xrP1Hlpp0Cg"><!-- JS 渲染 --></div>
+
+      <!-- 热门剧本 -->
+      <div class="section-title" data-page-node-id="TiXL5Y7CpQFfGxbp55C7fC">
+        <h2 data-page-node-id="RaVrpDdFArupIGLefUz1dz">热门剧本</h2>
+        <span class="more" onclick="toast('剧本广场（原型示意）')" data-page-node-id="OPOAjIlrmAcEzGMEwWtz69">更多 ›</span>
+      </div>
+      <div class="script-list" id="hotList" data-page-node-id="ecqicoIXnFCSezdSgxzr3C"><!-- JS 渲染 --></div>
+      <div style="height:16px" data-page-node-id="UKexm38hvtlSlueCwogZOL"></div>
+    </div>
+
+    <!-- ================= Tab2 抢购 ================= -->
+    <div class="page" id="page-buy" data-page-node-id="Cpg8wIFW6BwfguptfrYAka">
+      <div class="topbar" data-page-node-id="hCp4m0gi9MiP3GwbBUTEx0">
+        <div class="logo" data-page-node-id="gkHXJ1v3TqXSPxNHKxAXo7"><span class="mark" data-page-node-id="qNYncJjOng7MeSPVhcgize">场次抢购</span></div>
+        <div class="ztag innov" style="font-size:12px;" data-page-node-id="HH7R10xRGnRuZ5WBq3FS1s">今日 · 8月28日</div>
+      </div>
+
+      <div class="day-pick" data-page-node-id="3282lFsE2vwBJGCBjGdiu2">
+        <div class="d" data-page-node-id="5kwMjKswox3VsblgprGNqG"><span class="w" data-page-node-id="mZ217WCs1pWUqkqniFmSrR">周三</span><span class="n num" data-page-node-id="w54S7f2Vtsp5gzBq7Q4XUj">27</span></div>
+        <div class="d on" data-page-node-id="z9ORubVbgiGFCXL1SEF1C3"><span class="w" data-page-node-id="FPrdu1dQTvr7UIGsYgtVmx">周四</span><span class="n num" data-page-node-id="WrcgEwcUe1zNjDV8lAXn7B">28</span></div>
+        <div class="d" data-page-node-id="5PaS5WELFiQXgy8wsgbJgA"><span class="w" data-page-node-id="R5ONJBnt4DPkxtlCf6vauu">周五</span><span class="n num" data-page-node-id="MCXg0EWhCWHOMFvnq9M2gD">29</span></div>
+        <div class="d" data-page-node-id="cttpbjvFvMZbdaZL3qHBSx"><span class="w" data-page-node-id="ME8LIkcK3XAdUxUAQXckJg">周六</span><span class="n num" data-page-node-id="1BZPqmwlzxEUe0GDEebfCY">30</span></div>
+        <div class="d" data-page-node-id="P2rGQPSaaNsUKqIKHYmIEm"><span class="w" data-page-node-id="tTh1FFDuYb5zKNQ2xEXSDb">周日</span><span class="n num" data-page-node-id="noX3NBnv6WCVm4e0OZ0aXC">31</span></div>
+      </div>
+
+      <div class="timeline" data-page-node-id="VFZbR9bC7GBKBQkodwGPis">
+        <div class="t-item done" data-page-node-id="jEFymzBpS8dp52ddfVxsoq"><div class="tt num" data-page-node-id="rk5XDbBaoHMje7p8Pggni6">13:00</div><div class="pt" data-page-node-id="F5chVsSzH5yZZa0JdgRuOE"></div></div>
+        <div class="t-item cur" data-page-node-id="1LFnYW8sfABfyRxKdRCrzk"><div class="tt num" data-page-node-id="k1BEFpVXAUHwsrwkQefnOU">14:00</div><div class="pt" data-page-node-id="FBFgc2IudghFGc1Mj01eIw"></div></div>
+        <div class="t-item" data-page-node-id="gqITXVj57sErMBWFsQ6Tuk"><div class="tt num" data-page-node-id="HMP7IouDpEqjkNQMIAi6ML">15:00</div><div class="pt" data-page-node-id="wDE3vqjrjEyCbp5ZPh3Eph"></div></div>
+        <div class="t-item" data-page-node-id="Ovj3Ora8U5xPX3F7JPTK9C"><div class="tt num" data-page-node-id="lZVdzjmIfnly46cBRrEsVc">16:00</div><div class="pt" data-page-node-id="sieNqaepB8uW0aMYYtwIkA"></div></div>
+        <div class="t-item" data-page-node-id="Les4cHzBBVHNvEViwOS3IO"><div class="tt num" data-page-node-id="Y9utSkIC2lgLpsZSMBQZBU">17:00</div><div class="pt" data-page-node-id="cvc8bEwz3vvnCaDdLi94Qe"></div></div>
+      </div>
+
+      <div class="sub-head" data-page-node-id="3r355w43FfMAtdufHwbD4Y">场次日历 <span style="font-size:12px;color:var(--text-sub);font-weight:400;" data-page-node-id="iF7oGfRMSo7UHSoS4F0wSb">（V2.1 档位表 · 抢购制）</span></div>
+      <div id="sessionList" data-page-node-id="Wen6aq6iBtNyTvKGFGZYkK"><!-- JS 渲染 --></div>
+
+      <div class="sub-head" data-page-node-id="ORCYGEWFm3G2IdKV8PSLrx">我的预约</div>
+      <div class="reserve-list" data-page-node-id="E9ENPer9U4X4lVuQqXhc5u">
+        <div class="reserve-item" data-page-node-id="vVFDFK9E1QT9Nx0tsfxNc9">
+          <div class="r1" data-page-node-id="u2WWY2dZ1WJnxnyUWHbJSg"><span class="st st-reserving" data-page-node-id="y3YlEVnlnCGGXxKXjS757D">● 预约中</span><span class="ztag innov" data-page-node-id="tG6BWauEmBN3UJsCfhA6aQ">创新区</span><span class="tm num" data-page-node-id="Gahx5QksHkOcw2FoxKjtOG">今日 14:00</span></div>
+          <div class="r2" data-page-node-id="BmQ4aQ8uTCndTv5hz14TuR"><span data-page-node-id="qHu2eFXOn5uf6XyrtZFBPW">1,000–5,000 USDT · 周期 1 天</span><b class="num" data-page-node-id="4cFkWwrngzuREuO32taOwj">已冻结 75 Drama</b></div>
+          <div class="r2" data-page-node-id="LEqn6N5DFtbpbUJ5DoUEyQ"><span style="font-size:12px;" data-page-node-id="StYWXngN3lS6fTb9il9ECy">未抢到将自动解冻 Drama，无需手动操作</span></div>
+        </div>
+        <div class="reserve-item" data-page-node-id="NuIUtDK5ck0fg09BBMVqce">
+          <div class="r1" data-page-node-id="AZhI9CDJlyubaQXPcV0Co5"><span class="st st-won" data-page-node-id="wPxnIiCxivEdfnPttCGq0N">● 已抢到</span><span class="ztag normal" data-page-node-id="MWo0ozrDIj9I17cddcXeTO">普通区</span><span class="tm num" data-page-node-id="i7ODfU3wCdKJ0HgHmZptWY">今日 16:00</span></div>
+          <div class="r2" data-page-node-id="oGcIQmpyKF5HDBZ1O43h8k"><span data-page-node-id="eHtfDaalQtYDtcTv21zsuA">1,000–5,000 USDT · 成交 <b class="num" data-page-node-id="B76hh35rAOU78RhbZehfvM">1,500.00 USDT</b> · 周期 7 天</span></div>
+          <div class="r2" data-page-node-id="KAmlDiEThdwlXbn74aFHfB"><span data-page-node-id="BF0RUlpi8wqu1ME5w6SyJr">待付款倒计时 <b class="cnt num" id="payCountdown" data-page-node-id="7qeFeUR8j0XFVlXt04up1t">60:00</b></span>
+            <span style="font-size:12px;" data-page-node-id="5EAtvQEqHKoZj8PrRmNSpS">逾期未付款将按违约处理：扣 Drama 50% 销毁、50% 补偿卖家</span></div>
+        </div>
+        <div class="reserve-item" data-page-node-id="VMnEz4nDsrD7IA5oWld5jN">
+          <div class="r1" data-page-node-id="RKb2FD6naSAwFZM9mMVNsE"><span class="st st-failed" data-page-node-id="dHfesECR7Nr3FmrxHReyXm">● 未抢到</span><span class="ztag innov" data-page-node-id="KUUZLSJ8lxngTx1Mg0hAsf">创新区</span><span class="tm num" data-page-node-id="XP0aeu8HuzJGlu7DViNMds">今日 12:00</span></div>
+          <div class="r2" data-page-node-id="9MXHJ4eMUqSU4K5mubAgFO"><span data-page-node-id="iH4qLbs11R9ZqdpOUoAL7y">1,000–5,000 USDT</span><b class="num" style="color:var(--success);" data-page-node-id="Ui5WOmtJ21qXkEmwAs7G21">75 Drama 已解冻</b></div>
+          <div class="r2" data-page-node-id="k7jdlEbJfLxlwU5GnvUedg"><span style="font-size:12px;" data-page-node-id="o80Aobf9c6m7ZuOMTA64Az">参与补偿：<b class="num" style="color:var(--text);" data-page-node-id="mQ8HoZqmDBDnbdqmN1GKWr">+20 生态积分（来源A）</b></span>
+            <button class="link" onclick="openResult(false)" data-page-node-id="SMJChg1Aq1nbkXdH01d8dF">查看结果页 ›</button></div>
+        </div>
+      </div>
+      <div style="height:16px" data-page-node-id="XCVhH4JG4kxQYQ205frmk0"></div>
+    </div>
+
+    <!-- ================= Tab3 持仓 ================= -->
+    <div class="page" id="page-pos" data-page-node-id="nELfl6cEwsuz8WekwpXdpC">
+      <div class="topbar" data-page-node-id="n3NHcqgCHm5Co1mHV1unjn">
+        <div class="logo" data-page-node-id="Qkgy68nwwbmYedDvb6ACfl"><span class="mark" data-page-node-id="VK0xIkxnvQfK69HfPge1bQ">我的持仓</span></div>
+        <div class="ztag normal" style="font-size:12px;" onclick="toast('持仓统计（原型示意）')" data-page-node-id="Af7imPtuyk5vM7PFF1s1FF">共 7 笔</div>
+      </div>
+
+      <div class="pos-tabs" data-page-node-id="HElXN3z254Fo2KRDmDKXaa">
+        <button class="pt-btn on" onclick="toast('全部持仓（原型示意）')" data-page-node-id="Na53DO64E3oCeWrmyzdW3e">全部</button>
+        <button class="pt-btn" onclick="toast('持有中筛选（原型示意）')" data-page-node-id="LJECD6KoZnhj0SBVlan8va">持有中</button>
+        <button class="pt-btn" onclick="toast('在售中筛选（原型示意）')" data-page-node-id="lZoA8R5zCRvISRJVDq0iUC">在售中</button>
+        <button class="pt-btn" onclick="toast('已完成筛选（原型示意）')" data-page-node-id="w1UaPJNibZIsHuAPqYNbxD">已完成</button>
+      </div>
+
+      <!-- 1 HOLDING -->
+      <div class="pos-card" data-page-node-id="7dX7kUwAhgLdQZbu0TozTR">
+        <div class="p1" data-page-node-id="gkvayBmDfxM6f5sm9IfPLn"><span class="nm" data-page-node-id="Kr6VFLtbd9ySZOxOkPt7Uf">《墨雨云间·番外》</span><span class="stbadge st-HOLDING" data-page-node-id="x1igG1Nnobbg6UgnzvTrps">持有中 HOLDING</span></div>
+        <div class="grid" data-page-node-id="OUnD6A2p75Tyst310FNJcP">
+          <div class="cell" data-page-node-id="K6OaWbcHqd9kiapBHKP8lA"><div class="k" data-page-node-id="BdnBxDWIVUwlrb80UKtRO6">买入价</div><div class="v prc num" data-page-node-id="60MLGyaAY1QpYkumEyFIDl">1,200.00 USDT</div></div>
+          <div class="cell" data-page-node-id="hLO4v2XhtGkDm2KVjwJ9Lu"><div class="k" data-page-node-id="YuNfo2itkJVQMmNIEbfaaN">当前账面价（历史日增 3%）</div><div class="v growv num" data-page-node-id="qGosapydqYdwgZKh8ihIFF">1,236.00 USDT</div></div>
+          <div class="cell" data-page-node-id="DgtamHC9Z4tUldss05K3eG"><div class="k" data-page-node-id="IAXXNYZ9H0piGBp0iFvimj">预计卖价</div><div class="v prc num" data-page-node-id="Uqh6dJV0os7oVWBT6AJSkA">≈ 1,273.08 USDT</div></div>
+          <div class="cell" data-page-node-id="PwX1fQGeOkEfebBU7TVp6t"><div class="k" data-page-node-id="rSNj822qwJuhkCoXIbsNVN">卖出需占用 Drama（增长×85%）</div><div class="v num" data-page-node-id="Ccgaaa8M9chEhElsfBRpvz">30.60</div></div>
+        </div>
+        <div class="risk-bar" data-page-node-id="Z5TQEeTIScjJ2q8FPLdf54">历史日增为历史数据，不构成收益承诺</div>
+        <div class="actions" data-page-node-id="iaEo9ecPNMQSXHdzIqEWi4"><span style="font-size:12px;color:var(--text-sub);align-self:center;" data-page-node-id="e7xy2gHVaZk90WyqwKCKRh">到期倒计时 <b class="cnt num" data-page-node-id="eIsTbker9uChWu5xe3t7lo">2天 14:32</b>，到期后进入待售流程</span></div>
+      </div>
+
+      <!-- 2 MATURED -->
+      <div class="pos-card" data-page-node-id="uUWAbizJqUZaQ9AsvhbEUp">
+        <div class="p1" data-page-node-id="bzu29yjtTYLsG3sdpzwt5B"><span class="nm" data-page-node-id="5arLB9xGxJrQyiR0J4gWLj">《长风渡·前传》</span><span class="stbadge st-MATURED" data-page-node-id="b5Z0qLXviOMJBJYQkEzBAN">已到期 MATURED</span></div>
+        <div class="grid" data-page-node-id="b1NcdWP3bduHkOVtY9yvKE">
+          <div class="cell" data-page-node-id="g0oUufM7XWEf23GIsGih13"><div class="k" data-page-node-id="nU5ZdMmGbGgJvzlDFPtx5A">买入价</div><div class="v prc num" data-page-node-id="c35PVwo2pqUiQW3kGnXCAF">800.00 USDT</div></div>
+          <div class="cell" data-page-node-id="HpZwDovLqlO9KuKCey0HVM"><div class="k" data-page-node-id="lAbxUJSgwE3mQnzXBQ8ijH">当前账面价（历史日增 2% · 7 天复利）</div><div class="v growv num" data-page-node-id="qElmbtmV65GCzkD4FHslOg">918.95 USDT</div></div>
+          <div class="cell" data-page-node-id="LEbLUnBxSRqNwBwUVvi7E0"><div class="k" data-page-node-id="GgIG0tNtqClEujCZOMSxRD">预计卖价</div><div class="v prc num" data-page-node-id="TUUIiZSjjkhPrDgCtPUDd8">≈ 946.52 USDT</div></div>
+          <div class="cell" data-page-node-id="9fV8DXEZOhtLLVbmNaj8yX"><div class="k" data-page-node-id="10pg4X7rXUnsM4IK2JGesp">卖出需占用 Drama（增长×85%）</div><div class="v num" data-page-node-id="iDc1T5KYaeKZDF8Ww08XoR">101.11</div></div>
+        </div>
+        <div class="risk-bar" data-page-node-id="itLcJ9im9aOQmL4GTCWX90">历史日增为历史数据，不构成收益承诺</div>
+        <div class="actions" data-page-node-id="9vz7vZYcFYEmtF3VTSDrwl"><button class="btn btn-primary" onclick="toast('进入上架流程（原型示意）')" data-page-node-id="fytqTWEhxEweO1UG1aOC7w">去上架</button></div>
+      </div>
+
+      <!-- 3 READY_TO_LIST -->
+      <div class="pos-card" data-page-node-id="MWllDzzmVEAhaWhzZ3H78A">
+        <div class="p1" data-page-node-id="x06rx2Un43IJqyB6AZ5SX3"><span class="nm" data-page-node-id="Va8b5BeekU3GVS40O1SS9o">《山河令·衍生》</span><span class="stbadge st-READY_TO_LIST" data-page-node-id="Z8PJouYOUS7n0n5TK6Nr4b">待上架 READY_TO_LIST</span></div>
+        <div class="grid" data-page-node-id="Z1oLLWNV8YBZfKrqiIRiAO">
+          <div class="cell" data-page-node-id="BXHxjg67hz9NqrDAYZwOVf"><div class="k" data-page-node-id="YMbDz2aTxMDpRDSUuldvCk">买入价</div><div class="v prc num" data-page-node-id="UaUA0H7LYO0fQ2UiXyGSBQ">500.00 USDT</div></div>
+          <div class="cell" data-page-node-id="6fo4tVtJgrUiNUBPTnWBJg"><div class="k" data-page-node-id="DveuKkuisRXUjIm4B5vRdz">当前账面价（历史日增 2%）</div><div class="v growv num" data-page-node-id="CyqmxCsDtSArcnGGRhgIhj">520.00 USDT</div></div>
+          <div class="cell" data-page-node-id="PCouTS0ihx4b4cUXeXGAyW"><div class="k" data-page-node-id="DRPeCgDu7wXYjDcfQ9MAYB">建议挂单价</div><div class="v prc num" data-page-node-id="CcE7mt9nXLeP8jxQOcMtIo">535.60 USDT</div></div>
+          <div class="cell" data-page-node-id="ZvC1daz9vFR9QBhfqpyTRq"><div class="k" data-page-node-id="ZFdsMXl5JWsHA8POoacdxw">卖出需占用 Drama（增长×85%）</div><div class="v num" data-page-node-id="u8fqZFCpyiqd9JPo33d4VT">17.00</div></div>
+        </div>
+        <div class="risk-bar" data-page-node-id="iQ7TjA0UbCoHYumPE0f45o">历史日增为历史数据，不构成收益承诺</div>
+        <div class="actions" data-page-node-id="eRkXD6fjOXx3dPjxx6QVEW">
+          <button class="btn btn-primary" onclick="toast('已提交上架，进入等待买家（原型示意）')" data-page-node-id="FBCToRLpDNucLFboDTzebO">确认上架</button>
+          <button class="btn btn-ghost" onclick="toast('定价建议（原型示意）')" data-page-node-id="mgbBaVDBmT6YOyl76qbHPl">定价建议</button>
+        </div>
+      </div>
+
+      <!-- 4 LISTED -->
+      <div class="pos-card" data-page-node-id="DDEtdX1XqoDGIountwd0v6">
+        <div class="p1" data-page-node-id="SWfT4RgP6lCrwVGgh45eat"><span class="nm" data-page-node-id="iTv9JOifRZ3I3YVLE8ZXI0">《执笔人·卷二》</span><span class="stbadge st-LISTED" data-page-node-id="xgCu1yDAY9mWyH4eS2EnRg">已上架 LISTED · 等待买家</span></div>
+        <div class="grid" data-page-node-id="oWeQsRUK2f1jzOYPNLPTeJ">
+          <div class="cell" data-page-node-id="fu0YzPJqAzCyplpOHkdsN8"><div class="k" data-page-node-id="7mtUpNsAsK4BDxF8pFw2xr">买入价</div><div class="v prc num" data-page-node-id="cPydjXQ6C6nDR0t6l8YQvz">300.00 USDT</div></div>
+          <div class="cell" data-page-node-id="CN1QxYRa7RnSiV5WGPgBal"><div class="k" data-page-node-id="wRw66ALlWPZjaHlCiGHhql">挂单价</div><div class="v prc num" data-page-node-id="C2Q266ZXeiu8S0w0vSHzi1">324.00 USDT</div></div>
+          <div class="cell" data-page-node-id="QyrOzpJMyAQATQb4ReI4N5"><div class="k" data-page-node-id="1larqGfLR2GpTSPFtcQhQn">预计卖价</div><div class="v prc num" data-page-node-id="SvXeaA85hP2WLXGIZ8AlGJ">≈ 324.00 USDT</div></div>
+          <div class="cell" data-page-node-id="buvpftQUWE23OvIv8ndloz"><div class="k" data-page-node-id="VFl5Gf5THAZYooshGOMNwW">卖出需占用 Drama（增长×85%）</div><div class="v num" data-page-node-id="K8r9FtCzGN97ToEuXtEcZi">20.40</div></div>
+        </div>
+        <div class="risk-bar" data-page-node-id="OlhQkx2zUTdJHQA4wBFa21">已上架 1 天 6 小时 · 撮合时间以市场热度为准，不构成成交承诺</div>
+      </div>
+
+      <!-- 5 DAO → Drama_INSUFFICIENT -->
+      <div class="pos-card" data-page-node-id="kTC4aWlX5say37pk7gfxLm">
+        <div class="p1" data-page-node-id="Z6FNJPay32gnazjBmB6afR"><span class="nm" data-page-node-id="LI70xkBY5HcXH5xMF718hs">《夜色将明·终章》</span><span class="stbadge st-INSUFFICIENT" data-page-node-id="PyQ3ooLa82qxTedbViW5D1">待补充 Drama</span></div>
+        <div class="gap-note" data-page-node-id="WNwN3Ax6nACLqCgQIwGudh">
+          治理投票已通过（DAO），该笔交易卖出需占用 Drama（增长×85%），当前可用余额不足。<br data-page-node-id="FMwtI1UpF93OgP45KxMles">
+          需占用 <b class="num" data-page-node-id="xY2fXlNfy0aBsfHOP5YPjY">51.00</b> · 当前可用 <b class="num" data-page-node-id="tviEseIpv5uHmJsvhAvd0z">30.00</b> · 缺口 <b class="num" data-page-node-id="ff1UpjBx7bvasKYeojPYRM">21.00</b>
+        </div>
+        <div class="grid" data-page-node-id="HhlA2nDrjMiWAHtO76JGqo">
+          <div class="cell" data-page-node-id="3FsuG6eZWFhY0g6sTvnwOi"><div class="k" data-page-node-id="5UiIKmeEiDOWkvSRZBRcr5">买入价</div><div class="v prc num" data-page-node-id="QsuUWugS3di5JH00QwLKAi">600.00 USDT</div></div>
+          <div class="cell" data-page-node-id="WzYGZPb56BVY8lXjdBuJFi"><div class="k" data-page-node-id="ASjyStNHEMQhM1YenVe29Z">当前账面价（历史日增 3%）</div><div class="v growv num" data-page-node-id="FT33AWIEkTBHAGwnNq8yUs">660.00 USDT</div></div>
+          <div class="cell" data-page-node-id="o5gIHtVPHCbm8Xy0fZ2Tu6"><div class="k" data-page-node-id="ceyC0SAl9hJfoKEUQWFMwm">预计卖价</div><div class="v prc num" data-page-node-id="Qpj9sciJ84F9JGTCX1YaCG">≈ 679.80 USDT</div></div>
+          <div class="cell" data-page-node-id="wKfBDBWpC09fc6UvH7IecX"><div class="k" data-page-node-id="zhtaMejM8ssfsXbRHA9BQq">卖出需占用 Drama（增长×85%）</div><div class="v num" data-page-node-id="fdkephte7DpbODAOzlKANh">51.00</div></div>
+        </div>
+        <div class="risk-bar" data-page-node-id="rENmxGaKhaElEIgqMmNCaT">历史日增为历史数据，不构成收益承诺</div>
+        <div class="actions" data-page-node-id="woifl5toq0HAu1UPKrnrUH">
+          <button class="btn btn-primary" onclick="topUpDrama(21)" data-page-node-id="kpuYTdz4CQ3lfv1ZyNBOVr">一键补充 21 Drama</button>
+          <button class="btn btn-ghost" onclick="toast('补充 Drama 方式说明（原型示意）')" data-page-node-id="cpHOxkls7mHr4BgXlMYpOd">如何补充</button>
+        </div>
+      </div>
+
+      <!-- 6 MATCHED / SELLING（含结算瀑布） -->
+      <div class="pos-card" data-page-node-id="oTAaUfjMs1msGXxJtWjPxV">
+        <div class="p1" data-page-node-id="7JaAr1i9ucGe6nmbZVdOJK"><span class="nm" data-page-node-id="BumlynV0WItliByyDU6qLZ">《春风渡·卷一》</span><span class="stbadge st-SELLING" data-page-node-id="dU50HZqESjyREAHNZHKkj0">已撮合 SELLING</span></div>
+        <div class="grid" data-page-node-id="pdvnjd7tCBnEH5qnQlkAbO">
+          <div class="cell" data-page-node-id="9bWzETZu8AUllApYpMBDLG"><div class="k" data-page-node-id="EFkwb57jHrFsRuFBgBSdyy">买入价</div><div class="v prc num" data-page-node-id="cwiA1V7k1k1UcStj2PXDWB">1,000.00 USDT</div></div>
+          <div class="cell" data-page-node-id="AkWdcc2XNbJQxgDOrEacHY"><div class="k" data-page-node-id="R3Mj5cElA8P9Rzv7H5ADBZ">当前账面价（历史日增 3%）</div><div class="v growv num" data-page-node-id="gtSpP8pp3ibuol8732jItb">1,300.00 USDT</div></div>
+          <div class="cell" data-page-node-id="HNFzkLiQfN157FwX9HNaHa"><div class="k" data-page-node-id="fx8XaKrBueCOmIq3GTfEyV">成交价</div><div class="v prc num" data-page-node-id="0KHVbijwMCCJxqYY6jwELj">1,300.00 USDT</div></div>
+          <div class="cell" data-page-node-id="do72rWh4IEGHAZ89CjEs58"><div class="k" data-page-node-id="54dHcuRzIpPBe6hx8hXdZm">卖出需占用 Drama（增长×85%）</div><div class="v num" data-page-node-id="t2Vyj5jfR3gnB8aEYcT2bu">255.00</div></div>
+        </div>
+        <div class="risk-bar" data-page-node-id="GZWvzOmgCHlhTz2DTT3HhR">历史日增为历史数据，不构成收益承诺</div>
+        <button class="waterfall-toggle" onclick="toggleWF(this)" data-page-node-id="nhLItBBw0Tf4FvA7Nw4RkW">▾ 展开结算明细瀑布</button>
+        <div class="waterfall" style="display:none;" data-page-node-id="ZzgtmXixXv0XuYKYNCZUv6">
+          <h4 data-page-node-id="sBJXpx3z2qqdYoI2DF8P3b">结算明细（增值部分 300.00 USDT）</h4>
+          <div class="wf-line" data-page-node-id="OrORv1bq0whQYtIU0AvXAw"><span class="nm" data-page-node-id="mDgEj5qttxgphElgMACFu9">剧本增值收益</span><span class="amt plus num" data-page-node-id="HLEGqf2fJISrLR5m5PCcdp">+300.00</span></div>
+          <div class="wf-line" data-page-node-id="GmOf72nBxUMSBL1adPv34y"><span class="nm" data-page-node-id="ovUERVpByrsxDj1woLKuFH">├ 70% 平台手续费</span><span class="amt minus num" data-page-node-id="Du2uF23xAhw2KB9i9uW0a6">−210.00</span></div>
+          <div class="wf-line wf-sub" data-page-node-id="srD8kVCN0rXUC7Icm1IuMk"><span class="nm" data-page-node-id="pkP0tyb4ZvUWvqpVphsm15">├ 其中：平台佣金</span><span class="amt num" data-page-node-id="6Jnmelai0NbAwjQvqsLnZV">73.50</span></div>
+          <div class="wf-line wf-sub" data-page-node-id="GwsqBJ4uTpXDDSB5uG2MWr"><span class="nm" data-page-node-id="7Tt26bHg7l6Mz3KZNklHnQ">└ 其中：创作者与生态留存</span><span class="amt num" data-page-node-id="SC5OI8cWbMhFUO4mLO5bOU">136.50</span></div>
+          <div class="wf-line" data-page-node-id="WbIWufaLh5GyBbzpziKMC0"><span class="nm" data-page-node-id="UzbDKc3UxOmCejTGENr3H3">├ 15% 现金（可提现 USDT · TRC-20）</span><span class="amt plus num" data-page-node-id="H8lsc3JtiGPwPEHpBHwEYQ">+45.00</span></div>
+          <div class="wf-line" data-page-node-id="udSWMETDXafNOPusLwvtki"><span class="nm" data-page-node-id="RlF3fTHvAJsbC5Du38iNC1">└ 15% 生态积分（来源A）45 → 45</span><span class="amt plus num" data-page-node-id="ofQpfZ6lfTJO9xQ5O0e8lB">+45.00</span></div>
+          <div class="wf-total" data-page-node-id="tOaWknI4o47UOD4ah0GtXy"><span data-page-node-id="vBeRW0FgBrHi3ywYtfujWy">合计：300.00 = 210.00 + 45.00 + 45.00</span></div>
+          <div class="wf-note" data-page-node-id="FdK8WPuBhGBKDEqoAq7V91">说明：增值部分的 70% 作为手续费由平台与创作者/生态按 35:65 分成；15% 以 USDT 现金结算；15% 以生态积分发放（积分转换 1:1，即 1 Drama = 1 积分，本笔 45 → 45，来源A）。以上为结算规则示意，实际比例以协议为准。</div>
+        </div>
+      </div>
+
+      <!-- 7 SOLD -->
+      <div class="pos-card" data-page-node-id="Wh3Mx6Oo5fvDEes3H1iTch">
+        <div class="p1" data-page-node-id="DDo3CFw07whAvBJ7FJlFkp"><span class="nm" data-page-node-id="SnxOxxknLnimEEzvgTvfTr">《雾里看花·番外》</span><span class="stbadge st-SOLD" data-page-node-id="q2FWtSRLkE7Var7ZgAteUi">已售出 SOLD</span></div>
+        <div class="grid" data-page-node-id="ZGlitbMjTFvFQZshuBfMhe">
+          <div class="cell" data-page-node-id="WhI9ZpLhVYRkJbgvGmP80Z"><div class="k" data-page-node-id="FMprvapOmhqeBGVmaFJanv">买入价</div><div class="v prc num" data-page-node-id="kLzEyJS5Ns9wkWFBkqukuu">600.00 USDT</div></div>
+          <div class="cell" data-page-node-id="KD1xd1fWEuOUlB0hMsgEGO"><div class="k" data-page-node-id="ATerUIDk8h4dhEaKMRjIwd">成交价</div><div class="v prc num" data-page-node-id="AGOKEKLkXmxeVbrTpUPUFR">672.00 USDT</div></div>
+          <div class="cell" data-page-node-id="LL8bipcP6AvaDKTOD45vLF"><div class="k" data-page-node-id="48pWA8oSZGtGnCFOJDHu6H">到账现金（增值 15%）</div><div class="v prc num" data-page-node-id="QQkD8Zu0OXJNmYoWUsv3yp">+10.80 USDT</div></div>
+          <div class="cell" data-page-node-id="Oxw5CZFwkgV0PBuZHHlhjp"><div class="k" data-page-node-id="vAgbGRMn8LoZXdZZ2ShEWU">到账生态积分（来源A）</div><div class="v num" data-page-node-id="SvNodFW1SxdpfkkAB492xN">+10.80</div></div>
+        </div>
+        <div class="risk-bar" data-page-node-id="TjBbrbGjkfunb0P53juzGS">本笔增值 72.00 USDT · 手续费 50.40 / 现金 10.80 / 积分 10.80</div>
+        <div class="actions" data-page-node-id="Qjh5vF2d1TIURJHYxol7HJ"><button class="btn btn-gray" style="cursor:default;" data-page-node-id="yBpGv7L4ta9pAdbsPqOLgV">已完成结算</button></div>
+      </div>
+      <div style="height:16px" data-page-node-id="lUDQCrBXbyXrJKS9wHE8Qs"></div>
+    </div>
+
+    <!-- ================= Tab4 我的 ================= -->
+    <div class="page" id="page-me" data-page-node-id="zbN3QmnjZdxzcUBx6WHSQU">
+      <div class="topbar" data-page-node-id="At72oRRlCoe6QGBYFo0DbK">
+        <div class="logo" data-page-node-id="bVP2cyi50zOu1TA7rRsciE"><span class="mark" data-page-node-id="h2LvTVNuoFuvCkqpHbtGU2">我的</span></div>
+        <div class="ztag innov" style="font-size:12px;" onclick="toast('设置（原型示意）')" data-page-node-id="F3dTAsF4aEGTW9P3fwHGb1">设置</div>
+      </div>
+
+      <div class="me-head" data-page-node-id="dimrzuVdYCXCUICJs7zNgJ">
+        <div class="avatar" data-page-node-id="Yx3AKTaG3TR7jVxsGFWy5D">寇</div>
+        <div data-page-node-id="CGFpVwyqvEJWKWpCbgEEqW">
+          <div class="nm" data-page-node-id="5UuWNF8CJyyoCAD1dWvYgc">寇豆码</div>
+          <div class="uid num" data-page-node-id="ZCoXp8aqEl3pxYoayHhFrE">UID 860121 · 加入 86 天</div>
+        </div>
+        <div class="kyc l2" data-page-node-id="u9hej6Cxoj7sBd0y8ujrTu">KYC 已认证</div>
+      </div>
+
+      <!-- 钱包卡 -->
+      <div class="wallet-card" data-page-node-id="13n1yi8jc7dprV3KR8iRMu">
+        <div class="w-grid" data-page-node-id="rzxGpE2Ct3GD21Xy0M0LJU">
+          <div class="w-cell" data-page-node-id="RNzwySlCgKz2H0jZ3fEJUE">
+            <div class="k" data-page-node-id="zQDDAQ2w2pLyUv52YEhj70">Drama 余额</div>
+            <div class="v num" data-page-node-id="pvrwzgV9Az3ZBtJu6bOe6D">2,540.00</div>
+            <div class="frozen" data-page-node-id="UtBD6OBGczdNujVr2al0yQ">冻结中 <b class="num" data-page-node-id="6BBEwYhPCJiCr62CIAnhFD">75.00</b>（预约占用）</div>
+          </div>
+          <div class="w-cell" data-page-node-id="IyT1aBIiKDVZH5jvit7XkI">
+            <div class="k" data-page-node-id="azZk2ivwVfsfDAjvJUhnB3">生态积分</div>
+            <div class="v num" data-page-node-id="0OuBTcTbtjzNz6qXUIkwHt">1,120.00</div>
+            <div class="frozen" data-page-node-id="FKubrHzHqm9F7P6uUNmYIO">GIP 已并入生态积分展示</div>
+          </div>
+        </div>
+        <div class="pt-split" data-page-node-id="jKKm0dOFLMsLSMp8eFEwjs">
+          <span class="src" data-page-node-id="f2dGSjhXXa9O9j4YjQsIwY">来源A <span class="num" data-page-node-id="y7kx6xxGZD8P07PFK387YX">1,000.00</span></span>
+          <span class="src b" data-page-node-id="PF8WE1ioIdskQFDp74k4FN">来源B <span class="num" data-page-node-id="m70uiJ9lB7g7pP63QusUEQ">120.00</span></span>
+          <span style="margin-left:auto;font-size:11px;" data-page-node-id="bXHQzYRa7rOCvJbMIhU8rD">来源A 可按规则兑换</span>
+        </div>
+        <div class="w-actions" data-page-node-id="uHyStZxR9WyqwzlATqZWBy">
+          <button class="btn btn-primary" onclick="openFund('withdraw')" data-page-node-id="koBXIb5HBf6yF5HcfZ2ykI">USDT 提现</button>
+          <button class="btn btn-ghost" onclick="openFund('deposit')" data-page-node-id="l6UpWDZFkdF3PK5CD9glME">USDT 入金</button>
+        </div>
+      </div>
+
+      <!-- P2P 订单 -->
+      <div class="section-title" data-page-node-id="1z4DimCbWUfbH0NnESwijz"><h2 data-page-node-id="gdjFfT3kZxxiG7U305ULFn">P2P 订单</h2><span class="more" onclick="toast('全部订单（原型示意）')" data-page-node-id="RX5kbBnqdJkLrvio3DArtc">全部 ›</span></div>
+      <div class="p2p-item" data-page-node-id="uwQUQB4fQsaibDw646yvGg">
+        <div class="q1" data-page-node-id="usbpkO8z8iRoKygPwbSbsH">卖出《春风渡·卷一》<span class="amt num" data-page-node-id="MXcHwr82rDn81Oyl3m837E">1,300.00 USDT</span></div>
+        <div class="q2" data-page-node-id="W8DbI8ol2138B8jDAYfOqs">
+          <span data-page-node-id="uVrO7FGgnvY3nesdFPxjSZ">买家：星**剧</span>
+          <span class="txid num" data-page-node-id="8I4h1mEBiBvivjVwzNIPjv">TXID 0x9f3c…a21e</span>
+          <span class="tx-ok" data-page-node-id="lKKRCN3mjh06D22UA03hZa">已核验</span>
+        </div>
+        <div class="q2" data-page-node-id="e01BVbHmg2GjU7UViByy54"><span data-page-node-id="F9GVjztKgtVS4GXDLLoOld">链上确认 1/1 · TRC-20 · 现金部分 45.00 USDT 已到账</span></div>
+      </div>
+      <div class="p2p-item" data-page-node-id="eNKK7tSf7muCy8RYHVpfxV">
+        <div class="q1" data-page-node-id="Qz34yDC9Xlonu6fYQUqgVK">买入《执笔人·卷二》<span class="amt num" data-page-node-id="vmYHdoEaHTG4YAUxUidsQg">300.00 USDT</span></div>
+        <div class="q2" data-page-node-id="YCQhqhOx7WvxEaZCrmqQOB">
+          <span data-page-node-id="7ozonoARR9UonPIZJ5JukR">卖家：夜**行</span>
+          <span class="txid num" data-page-node-id="bZvyNyuFq14e6eXLRXdV7v">TXID 0x77ad…c903</span>
+          <span class="tx-wait" data-page-node-id="qHHXvusbuRuxcJfgYHwR78">待核验</span>
+        </div>
+        <div class="q2" data-page-node-id="jqkaYp0TM1ayFOFtQ9bWA9"><span data-page-node-id="JmoJxRbDq9P7LPbRGJbmWH">BSC-20 · 确认数 6/15，核验通过后自动放行剧本</span></div>
+      </div>
+
+      <!-- 邀请返佣 -->
+      <div class="section-title" data-page-node-id="nhzUU4OtLwL3QfdCHE2b8u"><h2 data-page-node-id="RLgMScsSxdL6CclEjth2Gy">邀请返佣</h2><span class="more" onclick="toast('邀请海报（原型示意）')" data-page-node-id="7aTFlXg32sdrEge8RzDYYH">邀请好友 ›</span></div>
+      <div class="team-card" data-page-node-id="IB9FhOQOqBA4tVSctnAfKH">
+        <div style="display:flex;align-items:center;" data-page-node-id="ANdOtAQn0Lysr5I99vNbjE">
+          <div data-page-node-id="0LAQY5LJYd0vm5p2JdceJd">
+            <div class="k" style="font-size:12px;color:var(--text-sub);" data-page-node-id="zZirEnLBFCwZ2hmGuGY770">累计佣金（USDT）</div>
+            <div class="num" style="font-size:22px;font-weight:700;color:var(--price);margin-top:2px;" data-page-node-id="kOJbUdPPaYT2SwAAJBaJvH">326.40</div>
+          </div>
+          <div style="margin-left:auto;text-align:right;" data-page-node-id="la1i6wLRgMKuBKQVOm8WKC">
+            <div style="font-size:12px;color:var(--text-sub);" data-page-node-id="sp9dVBhFwlgXz7qM45eGI9">我的团队 · 10 代关系</div>
+            <div class="num" style="font-size:14px;font-weight:700;color:var(--ink);margin-top:2px;" data-page-node-id="mPlhQx0JtreiwRUavR4aCY">团队成员 47 人</div>
+          </div>
+        </div>
+        <div class="rate-row" data-page-node-id="mztuRNrkxwNsgRksn6USmg">
+          <div class="rate-box" data-page-node-id="uvwiwTLEiYWER2n0LjdQh3"><div class="r num" data-page-node-id="HO6BPLzv75lTUpX5PHKmJH">7%</div><div class="g" data-page-node-id="dab2xujFHIXon0H5iQsxTi">第 1–3 代返佣</div></div>
+          <div class="rate-box" data-page-node-id="mrqxvMnrSfI7LHt8A9lpGw"><div class="r num" data-page-node-id="fBAm9pogWgaepfKxcQb5Se">2%</div><div class="g" data-page-node-id="2XqP3sDAG62WMADsNiDF8S">第 4–10 代返佣</div></div>
+        </div>
+        <div class="gen-bar" data-page-node-id="jv667EGFNXmWMIxRHtYYKU"><div class="g13" data-page-node-id="SEUSZhY0gp87dusqhsP2mP"></div><div class="g410" data-page-node-id="7d2b4HFbDdW2efGFLGzKaD"></div></div>
+        <div class="gen-legend" data-page-node-id="qvSpwAZeSqL1A3UEYxScx1">
+          <span data-page-node-id="bATtHl95gzqqpTlosSDmo8"><i style="background:var(--primary-600);" data-page-node-id="51Ac9b6FGowCmmcpM4lBdm"></i>第 1–3 代 · 7%</span>
+          <span data-page-node-id="5CT2ifbX5fTcbBwCjVVmjf"><i style="background:var(--primary-50);border:0.5px solid var(--line);" data-page-node-id="iGgWPQeFGhwGENNlDSCWtm"></i>第 4–10 代 · 2%</span>
+        </div>
+        <div class="risk-bar" data-page-node-id="JN5a1aARy1OkRSqOXeN3c9">返佣比例以平台协议为准，本页数据为示意</div>
+      </div>
+
+      <!-- 菜单 -->
+      <div class="menu-group" data-page-node-id="y1dfOwJ3oJIQMSUhxcGHNq">
+        <button class="menu-item" onclick="openFund('deposit')" data-page-node-id="BkMbk0bubqeiKop99GaWxG">
+          <span class="mi-icon" data-page-node-id="9BGkCk5oiLHw4kbU5UrRvi">＋</span>
+          <span class="mi-body" data-page-node-id="Xbihnsa7Pe9ZSPcxew8wIw"><span style="display:block;" data-page-node-id="kvk4BSo5u04H6RJvOin7t2">USDT 入金</span><span class="mi-sub" data-page-node-id="tEDdaGDHYLCs54PF5EjGkE">支持 TRC-20 / BSC-20 网络充值</span></span>
+          <span class="arrow" data-page-node-id="VYRb2Pr9dL1c7Q4Uy5qAot">›</span>
+        </button>
+        <button class="menu-item" onclick="toast('提现记录（原型示意）')" data-page-node-id="7CTw1aBxqzpb6k2VMtD6bi">
+          <span class="mi-icon" data-page-node-id="bwMzq4N03SOpBS18aVwBfZ">↑</span>
+          <span class="mi-body" data-page-node-id="p47V46ay1mzTVkKHcblKhE"><span style="display:block;" data-page-node-id="wDdDNtywXMaEKrUxbRoX5r">提现记录</span><span class="mi-sub" data-page-node-id="gk5GaEPgRnGcsXwmVbh3fZ">最近一笔 45.00 USDT 已到账</span></span>
+          <span class="arrow" data-page-node-id="bRhMWyeQsVCX5gHQj8VMJx">›</span>
+        </button>
+        <button class="menu-item" onclick="toast('生态积分明细（原型示意）')" data-page-node-id="4Dh5wn8dqCeDxs0e4GpdPD">
+          <span class="mi-icon" data-page-node-id="Ky3t1nkNaCajZh92vuC23b">✦</span>
+          <span class="mi-body" data-page-node-id="brrmCtpl5G5vEZGGbhtqin"><span style="display:block;" data-page-node-id="kEmDKXAADBl2527SAeyZkC">生态积分明细</span><span class="mi-sub" data-page-node-id="1cuTDL3StTpEG6EnrRH32N">含来源A / 来源B 分类流水</span></span>
+          <span class="arrow" data-page-node-id="t6QLEBAwAnY3QxGjBtVFLH">›</span>
+        </button>
+        <button class="menu-item" onclick="toast('KYC 认证信息（原型示意）')" data-page-node-id="WsgKykW0E2maFUSaI5jIzc">
+          <span class="mi-icon" data-page-node-id="xODgru5SkWLjFdZvNYDoBK">✓</span>
+          <span class="mi-body" data-page-node-id="TvkiOEutZGZcgHLFO08g4u"><span style="display:block;" data-page-node-id="TP0UC9OthMcpr4r62xch8K">身份认证 KYC</span><span class="mi-sub" data-page-node-id="fvLD0TMWRr9i9pM4rMx6l3">已认证 L2 · 2026-06-03 通过</span></span>
+          <span class="arrow" data-page-node-id="tWocGtHjKbNMKbKc1DfRMU">›</span>
+        </button>
+        <button class="menu-item" onclick="toast('帮助与合规说明（原型示意）')" data-page-node-id="A8QV9PysvGuOp7ZYoTbZlK">
+          <span class="mi-icon" data-page-node-id="pRGQUZHJp3xGm8AlL19bQ2">?</span>
+          <span class="mi-body" data-page-node-id="BvgRkusRUD7CTbOIu8sLdV"><span style="display:block;" data-page-node-id="IhMISwRpOG6qHRdoFTOWTM">帮助与合规说明</span><span class="mi-sub" data-page-node-id="G004Y8B1AqduHTrVotyDH5">风险披露 · 用户协议 · 免责声明</span></span>
+          <span class="arrow" data-page-node-id="CsAaArIMLfsFlh1kK4g6qS">›</span>
+        </button>
+      </div>
+      <div class="asset-note" style="margin-top:12px;" data-page-node-id="bx4w7LHMlDUVq91fC8IqK8">
+        <span class="info-i" data-page-node-id="ZpvhDCCrSMxIXX39oPsTMm">i</span>
+        <span data-page-node-id="pahESA6GkBp3gBNae14skV">平台所有历史日增数据仅用于展示历史表现，不构成任何收益承诺或投资建议。请理性参与，注意风险。</span>
+      </div>
+      <div style="height:16px" data-page-node-id="QBEfnR8lnKhOLGm49Lma5H"></div>
+    </div>
+
+    <!-- ================= 底部 Tab 栏 ================= -->
+    <div class="tabbar" data-page-node-id="vAcIf0NrK07w4za9bDy9Zd">
+      <button class="tab on" id="tab-home" onclick="gotoTab('home')" data-page-node-id="aAXEEQ8HiBlzYk047tfHif"><span class="ic" data-page-node-id="CvC5IoA3MyAer2aiEUcFTe">⌂</span>首页</button>
+      <button class="tab" id="tab-buy" onclick="gotoTab('buy')" data-page-node-id="73jftUZuhnQ14gifhFR2DA"><span class="ic" data-page-node-id="r9li99NSp17z5hIZftf1JY">⚡</span>抢购</button>
+      <button class="tab" id="tab-pos" onclick="gotoTab('pos')" data-page-node-id="7bP2KP3DkC1KckUa1PBL04"><span class="ic" data-page-node-id="PxPWatSwPfazZ9dDohSFUd">▤</span>持仓</button>
+      <button class="tab" id="tab-me" onclick="gotoTab('me')" data-page-node-id="E5yovmKTUajuhZha30rJot"><span class="ic" data-page-node-id="DV3Jm52HFQEya4tInNuQPe">◉</span>我的</button>
+    </div>
+
+    <!-- ================= 弹层 1：预约确认 ================= -->
+    <div class="overlay" id="ovReserve" onclick="overlayClick(event,'ovReserve')" data-page-node-id="QQAY9K4zigejTkCj3zLIGz">
+      <div class="modal" onclick="event.stopPropagation()" data-page-node-id="VGdCNgwXu2nC3mqDvRTzf2">
+        <div class="m-head" data-page-node-id="Y4H4267EsU05jJc9kNuTaV"><h3 data-page-node-id="7GXUcc4spUBUxWbrCjEjwK">预约场次确认</h3><button class="m-close" onclick="closeModal('ovReserve')" data-page-node-id="Byy5GjnX9h2aoM1TFjwIki">✕</button></div>
+        <div class="m-rows" data-page-node-id="PvOBNgRUTH6AFI1DMEU92S">
+          <div class="m-row" data-page-node-id="UxqLHr5FTrdTU61RkwTzQU"><span class="k" data-page-node-id="UnF9U7BSqCJQH4ue2EL8yG">场次时间</span><span class="v num" id="rvTime" data-page-node-id="eV7CbwhqhQGM3XHeGufxBg">今日 14:00</span></div>
+          <div class="m-row" data-page-node-id="RET4m6XqL4iSfZ1IqG7CXV"><span class="k" data-page-node-id="PSfk2ByPwj2sf8AGqESOoK">专区 / 档位金额</span><span class="v" data-page-node-id="B9xBrfQBz8f0YKTPJurbfk"><span class="ztag innov" id="rvZone" data-page-node-id="OINAUrwWC9pB9FrnAm4CPx">创新区</span>&nbsp;<span class="num prc" id="rvRange" style="color:var(--price);font-weight:700;" data-page-node-id="c8mRvsJ7YNNPa1eJpP3JVd">1,000–5,000 USDT</span></span></div>
+          <div class="m-row" data-page-node-id="ipcUjFfaSLDHY7UOkOoJrZ"><span class="k" data-page-node-id="KNfhquUUdqzSPVpEX3T57P">周期</span><span class="v num" id="rvCycle" data-page-node-id="GJOrWNgVaNa5BHdhkxbN7U">1 天</span></div>
+          <div class="m-row" data-page-node-id="kON9k1acGgS2b9qZ2qvoxb"><span class="k" data-page-node-id="FpcEDJpMBUOQvyRTZ720eI">预约需冻结 Drama</span><span class="v num" id="rvDrama" style="color:var(--primary-600);font-weight:700;" data-page-node-id="IaHKRyTugJG3cgSDn9kOSy">75</span></div>
+          <div class="m-row" data-page-node-id="UJlTqDJsjYIJwk8DXrHi2r"><span class="k" data-page-node-id="J1T8uy1ho9RpETbe85kHRD">冻结后可用 Drama</span><span class="v num" data-page-node-id="Fe4tuuGJtSfIKVJAkGfABL">2,465.00</span></div>
+        </div>
+        <div class="m-tip" data-page-node-id="o7K5BMP8Pi1bY6RcgaiJGa">
+          <b data-page-node-id="1wALBf9G4LBf1BHCHsCaCt">取消规则：</b>预约后如未抢到场次名额，冻结的 Drama 将在场次结束时<b data-page-node-id="mCKqJIuh7hC816L21j5haD">自动解冻</b>，无需手动操作。<br data-page-node-id="IJ5Nj8HYEELl8d8hqnOhEI">
+          <b data-page-node-id="MrrSSAWG18EsREwmiFDTD5">操作不可撤销：</b>预约提交后本笔冻结立即生效，不可撤回。
+        </div>
+        <div class="m-warn" data-page-node-id="8cZt8rldsjvKli4FCVVAVy">
+          <b data-page-node-id="ejWtKvxz86UHTX0bkX9pJZ">违约警示：</b>抢到场次后未在 60 分钟内完成付款，将扣除预约冻结 Drama 的 50% <b data-page-node-id="EQPHgPoxOxrtdPgjz1x1Mv">直接销毁</b>，另外 50% <b data-page-node-id="edAvo9dweBwNNiV8c1Z17b">补偿给卖家</b>，请确认资金安排后再预约。
+        </div>
+        <div class="m-btns" data-page-node-id="IZYNEqbxFnF98Ht9koq3Z6">
+          <button class="btn btn-primary btn-block" onclick="confirmReserve()" data-page-node-id="C588wZ9l9TcTnE8YXnYCCB">确认预约（二次确认）</button>
+          <button class="btn btn-gray btn-block" style="cursor:pointer;" onclick="closeModal('ovReserve')" data-page-node-id="yYXeuY4yYNteWTqUM0tSDG">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 弹层 2：抢购结果 ================= -->
+    <div class="overlay" id="ovResult" onclick="overlayClick(event,'ovResult')" data-page-node-id="cg9a9MOpqFmxYt28Cslos4">
+      <div class="modal" onclick="event.stopPropagation()" data-page-node-id="s9jVk6OyjRL3XdWKgccJiM">
+        <div class="m-head" data-page-node-id="ygLmOKPwstAUxqv7UvZCsv"><h3 id="rsTitle" data-page-node-id="dmisKN0eskDYvcZJxMhLo9">抢购结果</h3><button class="m-close" onclick="closeModal('ovResult')" data-page-node-id="KpRdEaDYbocwfeaSC8xYHI">✕</button></div>
+        <!-- 成功 -->
+        <div id="rsOk" data-page-node-id="8RdwLokhY5KXw1zLtTSO3R">
+          <div class="result-hero" data-page-node-id="8WAvVorhKrCIdab9szhLZ0">
+            <div class="ric ok" data-page-node-id="QSo4Hvgbjexht19iikj4SE">✓</div>
+            <h3 data-page-node-id="pgd6WpXcYdA3gf9qF28BL4">恭喜，抢购成功！</h3>
+            <p data-page-node-id="VCwGqbgLdGalXJA5veBmpW">今日 14:00 · 创新区 · 1,000–5,000 USDT</p>
+            <p style="margin-top:8px;" data-page-node-id="B3yHWPVoQ8zFY36Tt2A8al">请在 <b class="big num" id="rsCountdown" data-page-node-id="XE9IVhr0R2lEfp6X7NGhsT">60:00</b> 内完成付款</p>
+          </div>
+          <div class="m-warn" data-page-node-id="Hcmm8H0LJtt6x4Jue0HVgF">逾期未付款将按违约处理：扣除预约冻结 Drama 的 50% 销毁、50% 补偿卖家。</div>
+          <div class="m-btns" data-page-node-id="7c22Vm8VDz1MGw3WzIKwT1">
+            <button class="btn btn-primary btn-block" onclick="closeModal('ovResult');toast('跳转付款（原型示意）')" data-page-node-id="5fTHP8QkBGA5zGb94lk5Bw">立即付款</button>
+            <button class="btn btn-gray btn-block" style="cursor:pointer;" onclick="closeModal('ovResult')" data-page-node-id="kA4Nc0nYvCnwkdIZg5raAV">稍后处理</button>
+          </div>
+        </div>
+        <!-- 失败 -->
+        <div id="rsFail" style="display:none;" data-page-node-id="xQpdtUaFcg8TEsqvt2BgYX">
+          <div class="result-hero" data-page-node-id="AniDDS5f6hLgOZK3DZ53b1">
+            <div class="ric fail" data-page-node-id="V5SLlq3lENN3sdLHpVNBEF">✕</div>
+            <h3 data-page-node-id="S82HoP8js9YHtG1Ejief4u">本场未抢到</h3>
+            <p data-page-node-id="ifXi2nkdCdKvuELSCemDYH">今日 12:00 · 创新区 · 1,000–5,000 USDT</p>
+          </div>
+          <div class="m-rows" style="margin-top:14px;" data-page-node-id="aUulaFiVUTiuzPOf0UtQ8L">
+            <div class="m-row" data-page-node-id="yxfPAFLTjRpgFmlTm4wwvb"><span class="k" data-page-node-id="LDNwBWpzMvt7myK0Gr6vhL">冻结 Drama</span><span class="v num" style="color:var(--success);" data-page-node-id="MBaAKjLPEe6XIlv3w24XzH">75.00 已自动解冻</span></div>
+            <div class="m-row" data-page-node-id="RGwj5ITIn2p9AQxGvkO9zM"><span class="k" data-page-node-id="SCZH3FCWb7Bn16wj0izG7i">参与补偿</span><span class="v num" style="color:var(--primary-600);" data-page-node-id="4ZYKarYcCeGnT5zHJfF2m5">+20 生态积分（来源A）</span></div>
+          </div>
+          <div class="m-tip" data-page-node-id="XQNeHpLjpTiFF8QBXUIHqD">补偿积分已发放至账户，可在「我的 → 生态积分明细」查看。下一场次 14:00 开抢，可提前预约。</div>
+          <div class="m-btns" data-page-node-id="7VfHQEnlbIevvYyn7lelPq">
+            <button class="btn btn-primary btn-block" onclick="closeModal('ovResult');gotoTab('buy')" data-page-node-id="9UvG8xjdbNLQDV65qMuzev">预约下一场次</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 弹层 3：USDT 入金 / 提现 ================= -->
+    <div class="overlay" id="ovFund" onclick="overlayClick(event,'ovFund')" data-page-node-id="bxVGYdqpyXLTO9AYGI3CC3">
+      <div class="modal" onclick="event.stopPropagation()" data-page-node-id="ajgtVCMsQjyQph8i2Ii1wX">
+        <div class="m-head" data-page-node-id="doMSIgLrebPU8AEj02b84Z"><h3 id="fdTitle" data-page-node-id="tds6aTJOW0V0UKC0gIwLZ5">USDT 入金</h3><button class="m-close" onclick="closeModal('ovFund')" data-page-node-id="3QFIuWsOITWO8JI4RY7DnF">✕</button></div>
+
+        <div class="m-tip" style="margin-top:0;margin-bottom:12px;" data-page-node-id="gK6uLgumyEkFu8x19Z41fp">选择网络（请务必与提款平台网络一致，<b data-page-node-id="jzSSgc7aLohVe01DkmTwO2">选错网络资产不可找回</b>）</div>
+        <div class="net-pick" data-page-node-id="29mDr1GAPpLOUcU2nX11Ky">
+          <div class="net-opt on" id="netTrc" onclick="pickNet('trc')" data-page-node-id="mWrc6VMLohETeq7gk9DtXx">
+            <div class="nn" data-page-node-id="XeIyHVMV7YSOx4ZhhPtora">TRC-20</div><div class="nd" data-page-node-id="5YeAfpzaHTB83uV7afzBKB">波场 · 手续费低 · 到账快</div>
+          </div>
+          <div class="net-opt" id="netBsc" onclick="pickNet('bsc')" data-page-node-id="3D4GRSeYOw6X9mOYbzKvQa">
+            <div class="nn" data-page-node-id="kLZmfM7qzFZwRgEUVyDccM">BSC-20</div><div class="nd" data-page-node-id="6VgQ7C48CHn2RIH12iWgQv">BNB Chain · 需 15 次确认</div>
+          </div>
+        </div>
+
+        <div class="qr-holder" data-page-node-id="JJJvVyzgKqL9h0Mrs8851T"></div>
+        <div class="addr-box" data-page-node-id="wGbTvB5A900oAXzFEYvv7O">
+          <span class="addr" id="fdAddr" data-page-node-id="fa1TZg4GxClIksmablCotr">TQ8mP2xVdK7sLw9nRfYc3JhG5uBzAeQ6Nt</span>
+          <button class="copy-btn" onclick="copyAddr()" data-page-node-id="0zEAC8SP6RFBjIpQ95HEpk">复制</button>
+        </div>
+
+        <div class="m-rows" style="margin-top:16px;" data-page-node-id="VcAZtvOdV9FDUfeVAOLGuE">
+          <div class="m-row" data-page-node-id="w2RiSGXDG8oBWbPa3Ck8GG"><span class="k" data-page-node-id="UGGiamSa8ftGdGMDtDcpR0">到账确认数</span><span class="v num" id="fdConf" data-page-node-id="d6qR5HNoB5HJGjJll1ajiC">TRC-20 · 1 次确认后到账</span></div>
+          <div class="m-row" data-page-node-id="PBosVaowniFWt8ZgKUmC6S"><span class="k" data-page-node-id="euyiS4fJUEcitgXhbzGzHZ">最小入金</span><span class="v num prc" data-page-node-id="TsTj6dlLoj9xIVlmeuD4n8">10.00 USDT</span></div>
+          <div class="m-row" data-page-node-id="qOXiCr2KNhQmS7Q4CgXGx6"><span class="k" data-page-node-id="tggsl0zZPyeSqWjYFDAZLl">预计到账时间</span><span class="v num" id="fdEta" data-page-node-id="HCWULlnnDUT7vak7y2KL0x">约 1–3 分钟</span></div>
+        </div>
+
+        <div class="m-warn" data-page-node-id="O8AANZPzyCnZSHDxWNxxiG"><b data-page-node-id="qdlVaAJxv7SidgIPVyadAy">不可撤销提示：</b>链上转账一经确认无法撤销。请小额试充后再进行大额充值；仅支持 USDT，其他资产将无法找回。</div>
+        <div class="m-tip" data-page-node-id="TVHY4G25yZSBAM9Dp1kTSr">我已了解风险，确认使用所选网络转账。</div>
+        <div class="m-btns" id="fdDepBtns" data-page-node-id="EMeYFuUEaMMoBRAh6r9ncr">
+          <button class="btn btn-primary btn-block" onclick="closeModal('ovFund');toast('已完成本笔入金登记（原型示意）')" data-page-node-id="0SexzY9qSKg37AiMro0rgn">我已转账，确认入金</button>
+        </div>
+        <div class="m-btns" id="fdWdBtns" style="display:none;" data-page-node-id="80UUZTKiNbveDXbC50XCzQ">
+          <button class="btn btn-primary btn-block" onclick="closeModal('ovFund');toast('提现申请已提交（原型示意）')" data-page-node-id="GWW5G5X4vKWhI3bYnheXlG">提交提现申请</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" data-page-node-id="M5sfdqNrHk0BTeEQ5Mh9tj"></div>
+    <div class="home-indicator" data-page-node-id="i0rrGmHJZ1f8AwDQhoJgXd"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DramaX 界面原型 · 原生 JS（无框架、无外部依赖）
+   ============================================================ */
+'use strict';
+
+/* ---------- 数据：专区内容（首页联动） ---------- */
+var HOME_DATA = {
+  innov: {
+    session: {
+      time: '今日 14:00', zone: 'innov', zoneName: '创新区',
+      range: '1,000–5,000 USDT', cycle: '1 天', drama: '75',
+      slot: '剩余名额 12 / 100'
+    },
+    scripts: [
+      { cv: 'cv1', title: '《墨雨云间·番外》', desc: '古装权谋 · 全 24 集 · 平台独家续写版权', price: '1,236.00', grow: '历史日增 3%', zone: 'innov' },
+      { cv: 'cv2', title: '《夜色将明·终章》', desc: '悬疑反转 · 全 18 集 · 已通过 DAO 治理审核', price: '1,785.00', grow: '历史日增 3%', zone: 'innov' },
+      { cv: 'cv3', title: '《春风渡·卷一》', desc: '都市情感 · 全 20 集 · 二次流转热度 TOP3', price: '1,300.00', grow: '历史日增 3%', zone: 'innov' }
+    ]
+  },
+  normal: {
+    session: {
+      time: '今日 16:00', zone: 'normal', zoneName: '普通区',
+      range: '1,000–5,000 USDT', cycle: '7 天', drama: '75',
+      slot: '剩余名额 46 / 200'
+    },
+    scripts: [
+      { cv: 'cv4', title: '《执笔人·卷二》', desc: '都市职场 · 全 16 集 · 稳定流转标的', price: '324.00', grow: '历史日增 2%', zone: 'normal' },
+      { cv: 'cv5', title: '《雾里看花·番外》', desc: '家庭伦理 · 全 22 集 · 上架满 30 天标的', price: '672.00', grow: '历史日增 2%', zone: 'normal' },
+      { cv: 'cv6', title: '《山河令·衍生》', desc: '武侠传奇 · 全 15 集 · 新上架标的', price: '520.00', grow: '历史日增 2%', zone: 'normal' }
+    ]
+  }
+};
+
+/* ---------- 数据：抢购场次日历（V2.1 档位表） ---------- */
+/* 预约 Drama 档位：300–1000 待确认；1000–5000 → 75；5000–12000 → 240；12000–35000 → 450 */
+var SESSIONS = [
+  { time: '13:00', zone: 'innov',  range: '300–1,000',   cycle: '1 天', drama: '待确认',    state: 'FULL' },
+  { time: '14:00', zone: 'innov',  range: '1,000–5,000', cycle: '1 天', drama: '75',        state: 'OPEN' },
+  { time: '14:00', zone: 'normal', range: '1,000–5,000', cycle: '7 天', drama: '75',        state: 'BOOKED' },
+  { time: '15:00', zone: 'innov',  range: '5,000–12,000',cycle: '7 天', drama: '240',       state: 'OPEN' },
+  { time: '15:00', zone: 'normal', range: '5,000–12,000',cycle: '7 天', drama: '240',       state: 'FULL' },
+  { time: '16:00', zone: 'innov',  range: '12,000–35,000',cycle:'7 天', drama: '450',       state: 'OPEN' },
+  { time: '16:00', zone: 'normal', range: '1,000–5,000', cycle: '7 天', drama: '75',        state: 'FULL' },
+  { time: '17:00', zone: 'normal', range: '12,000–35,000',cycle:'7 天', drama: '450',       state: 'OPEN' },
+  { time: '17:00', zone: 'innov',  range: '1,000–5,000', cycle: '7 天', drama: '75',        state: 'OPEN' }
+];
+var STATE_MAP = {
+  OPEN:    { text: '可预约', cls: 'btn-primary', disabled: false },
+  BOOKED:  { text: '已预约', cls: 'btn-booked',  disabled: true  },
+  RUNNING: { text: '进行中', cls: 'btn-disabled', disabled: true  },
+  FULL:    { text: '已满',   cls: 'btn-disabled', disabled: true  }
+};
+
+var currentZone = 'normal';
+var pendingSession = null;
+
+/* ---------- 工具 ---------- */
+function esc(s){ return String(s); }
+function $(id){ return document.getElementById(id); }
+
+function toast(msg){
+  var t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+
+function gotoTab(key){
+  ['home','buy','pos','me'].forEach(function(k){
+    $('page-' + k).classList.toggle('active', k === key);
+    $('tab-' + k).classList.toggle('on', k === key);
+  });
+  document.querySelectorAll('.page').forEach(function(p){ p.scrollTop = 0; });
+}
+
+/* ---------- 首页渲染 ---------- */
+function switchZone(zone){
+  currentZone = zone;
+  document.querySelectorAll('#zoneSwitch button').forEach(function(b){
+    var z = b.getAttribute('data-zone');
+    b.className = '';
+    if (z === zone) b.className = (z === 'innov') ? 'on-innov' : 'on-normal';
+  });
+  renderTodaySession();
+  renderHotList();
+}
+
+function renderTodaySession(){
+  var s = HOME_DATA[currentZone].session;
+  var zoneTag = s.zone === 'innov'
+    ? '<span class="ztag innov">' + s.zoneName + '</span>'
+    : '<span class="ztag normal">' + s.zoneName + '</span>';
+  var html =
+    '<div class="row1"><span class="time num">' + s.time + '</span>' + zoneTag +
+    '<span class="range num">' + s.range + '</span></div>' +
+    '<div class="meta">' +
+      '<span>周期 <b>' + s.cycle + '</b> · 预约需冻结 <b class="num">' + s.drama + ' Drama</b> · ' + s.slot + '</span>' +
+      '<span>历史数据，不构成收益承诺；抢购制，名额有限</span>' +
+    '</div>' +
+    '<div class="btn-wrap"><button class="btn btn-primary btn-block" onclick="openReserve(HOME_DATA[\'' + currentZone + '\'].session)">预约本场次</button></div>' +
+    '<div class="irrevocable">提交预约即冻结 Drama，操作不可撤销；未抢到将自动解冻</div>';
+  $('todaySession').innerHTML = html;
+}
+
+function renderHotList(){
+  var list = HOME_DATA[currentZone].scripts;
+  var html = list.map(function(it){
+    var zoneTag = it.zone === 'innov'
+      ? '<span class="ztag innov">创新区</span>'
+      : '<span class="ztag normal">普通区</span>';
+    return '<div class="script-card" onclick="toast(\'剧本详情（原型示意）\')">' +
+      '<div class="cover ' + it.cv + '"><span class="cover-t">' + esc(it.title.replace(/[《》]/g,'')) + '</span></div>' +
+      '<div class="info">' +
+        '<div class="t">' + esc(it.title) + zoneTag + '</div>' +
+        '<div class="desc">' + esc(it.desc) + '</div>' +
+        '<div class="price-row"><span class="price num">' + it.price + '</span><span class="price-unit">USDT</span>' +
+        '<span class="grow num">' + it.grow + '</span></div>' +
+        '<div class="risk-bar">历史数据，不构成收益承诺</div>' +
+      '</div></div>';
+  }).join('');
+  $('hotList').innerHTML = html;
+}
+
+/* ---------- 抢购页渲染 ---------- */
+function renderSessions(){
+  var html = SESSIONS.map(function(s, i){
+    var st = STATE_MAP[s.state];
+    var zoneTag = s.zone === 'innov'
+      ? '<span class="ztag innov">创新</span>'
+      : '<span class="ztag normal">普通</span>';
+    var dramaTxt = s.drama === '待确认'
+      ? '<b style="color:#8A5A20;">待确认</b>'
+      : '<b class="num">' + s.drama + '</b>';
+    var btn = '<button class="btn btn-sm ' + st.cls + '" ' +
+      (st.disabled ? 'disabled' : 'onclick="openReserve(SESSIONS[' + i + '])"') + '>' + st.text + '</button>';
+    return '<div class="session-item">' +
+      '<div class="when"><div class="h num">' + s.time + '</div><div class="z">' + zoneTag + '</div></div>' +
+      '<div class="mid"><div class="rng num">' + s.range + ' USDT</div>' +
+      '<div class="sub"><span>周期 ' + s.cycle + '</span><span>预约冻结 ' + dramaTxt + ' Drama</span></div></div>' +
+      '<div class="act">' + btn + '</div></div>';
+  }).join('');
+  $('sessionList').innerHTML = html;
+}
+
+/* ---------- 弹层通用 ---------- */
+function openModal(id){ $(id).classList.add('show'); }
+function closeModal(id){ $(id).classList.remove('show'); }
+function overlayClick(e, id){ if (e.target === $(id)) closeModal(id); }
+
+/* ---------- 弹层 1：预约确认 ---------- */
+function openReserve(session){
+  pendingSession = session;
+  $('rvTime').textContent = '今日 ' + session.time;
+  $('rvZone').textContent = session.zoneName || (session.zone === 'innov' ? '创新区' : '普通区');
+  $('rvZone').className = session.zone === 'innov' ? 'ztag innov' : 'ztag normal';
+  $('rvRange').textContent = session.range + ' USDT';
+  $('rvCycle').textContent = session.cycle;
+  $('rvDrama').textContent = session.drama === '待确认' ? '待确认（以开抢前公告为准）' : session.drama + ' Drama';
+  openModal('ovReserve');
+}
+
+function confirmReserve(){
+  closeModal('ovReserve');
+  if (pendingSession && pendingSession.drama === '待确认'){
+    toast('该档位预约冻结数待确认，暂不可预约');
+    return;
+  }
+  openModal('ovResult');
+  $('rsOk').style.display = 'block';
+  $('rsFail').style.display = 'none';
+  startCountdown();
+  toast('预约成功，已冻结 Drama（原型示意）');
+}
+
+/* ---------- 弹层 2：抢购结果 ---------- */
+function openResult(success){
+  openModal('ovResult');
+  if (success){
+    $('rsOk').style.display = 'block';
+    $('rsFail').style.display = 'none';
+    startCountdown();
+  } else {
+    $('rsOk').style.display = 'none';
+    $('rsFail').style.display = 'block';
+  }
+}
+
+/* 60:00 付款倒计时（两处同步） */
+var countdownTimer = null;
+function startCountdown(){
+  var remain = 60 * 60; /* 原型按 60 分钟演示，界面显示 60:00 起始 */
+  clearInterval(countdownTimer);
+  function paint(){
+    var m = Math.floor(remain / 60), s = remain % 60;
+    var txt = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    var a = $('rsCountdown'), b = $('payCountdown');
+    if (a) a.textContent = txt;
+    if (b) b.textContent = txt;
+    remain = remain > 0 ? remain - 1 : 0;
+  }
+  paint();
+  countdownTimer = setInterval(paint, 1000);
+}
+
+/* ---------- 弹层 3：入金 / 提现 ---------- */
+function pickNet(net){
+  var trc = net === 'trc';
+  $('netTrc').classList.toggle('on', trc);
+  $('netBsc').classList.toggle('on', !trc);
+  $('fdAddr').textContent = trc
+    ? 'TQ8mP2xVdK7sLw9nRfYc3JhG5uBzAeQ6Nt'
+    : '0x3F9aC71bE2dD45cA8f0B6eE91d24aC7b83D5F1c2';
+  $('fdConf').textContent = trc ? 'TRC-20 · 1 次确认后到账' : 'BSC-20 · 15 次确认后到账';
+  $('fdEta').textContent = trc ? '约 1–3 分钟' : '约 3–10 分钟';
+}
+
+function openFund(mode){
+  var isDep = mode === 'deposit';
+  $('fdTitle').textContent = isDep ? 'USDT 入金' : 'USDT 提现';
+  /* 入金展示收款地址与二维码；提现隐藏收款要素 */
+  $('fdAddr').parentNode.style.display = isDep ? 'flex' : 'none';
+  document.querySelector('#ovFund .qr-holder').style.display = isDep ? 'block' : 'none';
+  $('fdDepBtns').style.display = isDep ? 'flex' : 'none';
+  $('fdWdBtns').style.display = isDep ? 'none' : 'flex';
+  pickNet('trc');
+  openModal('ovFund');
+}
+
+function copyAddr(){
+  var addr = $('fdAddr').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(addr).then(function(){ toast('地址已复制'); },
+      function(){ toast('地址已复制（原型示意）'); });
+  } else {
+    toast('地址已复制（原型示意）');
+  }
+}
+
+/* ---------- 持仓：补充 Drama / 结算瀑布 ---------- */
+function topUpDrama(amount){
+  toast('已补充 ' + amount + ' Drama（原型示意），状态更新为「进行中」');
+  var card = event.target.closest('.pos-card');
+  if (card){
+    var badge = card.querySelector('.stbadge');
+    badge.className = 'stbadge st-SELLING';
+    badge.textContent = '已撮合 SELLING';
+  }
+}
+
+function toggleWF(btn){
+  var panel = btn.nextElementSibling;
+  var open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? '▸ 展开结算明细瀑布' : '▾ 收起结算明细瀑布';
+}
+
+/* ---------- 初始化 ---------- */
+renderTodaySession();
+renderHotList();
+renderSessions();
+startCountdown();
+</script>
+</body>
+</html>

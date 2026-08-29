@@ -1,0 +1,77 @@
+/* DramaX 移动端 —— 375 设计稿风格，浅色主题 */
+:root {
+  --primary: #4f46e5;
+  --primary-weak: #eef2ff;
+  --bg: #f6f7fb;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --up: #dc2626;    /* 涨：红 */
+  --down: #16a34a;  /* 跌：绿 */
+  --warn: #b45309;
+  --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--text); font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; }
+.num { font-variant-numeric: tabular-nums; }
+
+.shell { max-width: 420px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+.page { flex: 1; padding: 12px 12px 76px; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 2px; }
+.brand { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
+.brand em { color: var(--primary); font-style: normal; }
+.wallet-chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.wallet-chip.on { border-color: var(--primary); color: var(--primary); }
+
+.card { background: var(--card); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgb(0 0 0 / 4%); }
+.section-title { font-size: 16px; font-weight: 700; margin: 16px 2px 10px; display: flex; align-items: center; gap: 8px; }
+.tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--primary-weak); color: var(--primary); }
+.tag.gray { background: #f3f4f6; color: var(--muted); }
+.tag.green { background: #e4f0e9; color: var(--down); }
+.tag.amber { background: #fef3c7; color: var(--warn); }
+.tag.red { background: #fee2e2; color: var(--up); }
+
+.stat-hero { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; border-radius: var(--radius); padding: 18px 16px; margin-bottom: 12px; }
+.stat-hero .label { font-size: 12px; opacity: 0.85; }
+.stat-hero .value { font-size: 28px; font-weight: 800; margin-top: 4px; }
+
+.sess { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sess-name { font-size: 14px; font-weight: 700; }
+.sess-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.btn { border: none; border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.btn.primary { background: var(--primary); color: #fff; }
+.btn.ghost { background: var(--primary-weak); color: var(--primary); }
+.btn.block { width: 100%; padding: 12px; font-size: 14px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.holding-card .row1 { display: flex; justify-content: space-between; align-items: center; }
+.holding-card .title { font-weight: 700; font-size: 14px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.kv { background: #fafafa; border-radius: 10px; padding: 8px 10px; }
+.kv .k { font-size: 10px; color: var(--muted); }
+.kv .v { font-size: 14px; font-weight: 700; margin-top: 2px; }
+.kv .v.up { color: var(--up); }
+
+.listing { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.price { color: var(--up); font-weight: 800; font-size: 16px; }
+
+.sheet-mask { position: fixed; inset: 0; background: rgb(0 0 0 / 45%); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
+.sheet { width: 100%; max-width: 420px; background: #fff; border-radius: 18px 18px 0 0; padding: 18px 16px 24px; }
+.sheet h3 { font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+.pay-row { display: flex; justify-content: space-between; font-size: 13px; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+.pay-row .k { color: var(--muted); }
+.steps { margin: 12px 0; }
+.step { display: flex; gap: 10px; align-items: center; padding: 6px 0; font-size: 13px; color: var(--muted); }
+.step.on { color: var(--text); font-weight: 700; }
+.step .dot { width: 18px; height: 18px; border-radius: 50%; background: #e5e7eb; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+.step.on .dot { background: var(--primary); }
+.risk-note { font-size: 10px; color: var(--muted); line-height: 1.6; }
+
+.tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 420px; background: #fff; border-top: 1px solid var(--line); display: flex; padding: 6px 0 10px; z-index: 40; }
+.tab-item { flex: 1; text-align: center; color: var(--muted); font-size: 10px; font-weight: 600; cursor: pointer; background: none; border: none; }
+.tab-item .t-ico { font-size: 20px; display: block; margin-bottom: 2px; }
+.tab-item.active { color: var(--primary); }
+
+.center-tip { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 20px; }

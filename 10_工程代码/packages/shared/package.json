@@ -1,0 +1,11 @@
+{
+  "name": "@dramax/shared",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "DramaX 业务规则单一事实源（档位/复利/占用/拆分/返佣）",
+  "main": "src/index.mjs",
+  "exports": { ".": "./src/index.mjs" },
+  "scripts": {
+    "test": "node src/selftest.mjs"
+  }
+}

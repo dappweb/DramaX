@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="eBwnH4WmQeKBxOp2Mb1BvJ">
+<head data-page-node-id="8FOEy1xA3H9rD2Jvgn6CcX">
+<meta charset="UTF-8" data-page-node-id="6r1YXnIO3nI2QA2ugFI3Nl">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="v8YosCX8qqb9kVeIEmuHNQ">
+<title>DramaX UI 设计方案 V1.0</title>
+<style>
+:root{
+  --primary:#534AB7; --primary-bg:#EEEDFE; --ink:#26215C; --price:#993C1D;
+  --surface:#F1EFE8; --card:#FFFFFF; --line:#E5E2D6;
+  --up:#C53030; --down:#2F855A;
+  --radius:14px; --shadow:0 1px 3px rgba(38,33,92,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,"PingFang SC","Helvetica Neue",sans-serif;background:var(--surface);color:var(--ink);line-height:1.6;padding:32px 16px;}
+.page{max-width:960px;margin:0 auto;}
+h1{font-size:28px;margin-bottom:4px;}
+h1 .ver{font-size:14px;color:#8A85B8;font-weight:400;margin-left:8px;}
+.sub{color:#6B6690;margin-bottom:28px;font-size:14px;}
+h2{font-size:20px;margin:36px 0 14px;padding-left:12px;border-left:4px solid var(--primary);}
+h3{font-size:16px;margin:20px 0 10px;}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--primary-bg);color:var(--ink);text-align:left;padding:8px 10px;font-weight:600;}
+td{padding:8px 10px;border-bottom:1px solid var(--line);}
+code,.mono{font-family:"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;}
+.swatch{display:inline-block;width:64px;height:28px;border-radius:6px;vertical-align:middle;margin-right:8px;border:1px solid rgba(0,0,0,.06);}
+.tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;background:var(--primary-bg);color:var(--primary);margin-right:6px;}
+.warn{background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:12px 14px;font-size:13px;color:#9A3412;margin:10px 0;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:720px){.grid2{grid-template-columns:1fr;}}
+ul{padding-left:20px;}
+li{margin:4px 0;}
+.state-flow{font-family:Menlo,monospace;font-size:12px;background:var(--primary-bg);border-radius:8px;padding:12px;overflow-x:auto;white-space:nowrap;}
+</style>
+</head>
+<body data-page-node-id="76bQkDQtAb3TsJK5ydWdMF">
+<div class="page" data-page-node-id="cJFul1sKwO2cLzqZzh65WM">
+
+<h1 data-page-node-id="jNyuEGsw8rht8d5XEdIMbF">DramaX UI 设计方案<span class="ver" data-page-node-id="AxEUVIXwUKzDiMXBaGcUGd">V1.0 · 2026-08-28</span></h1>
+<p class="sub" data-page-node-id="y7itYUNqMhcO1QXPPMH31o">依据《DramaX 商业逻辑总结 V2.1 合并版》制定 · 配套高保真原型见同目录《DramaX_界面原型.html》</p>
+
+<h2 data-page-node-id="VhO6hUc603qDjAalJCr6mT">1. 设计原则</h2>
+<div class="card" data-page-node-id="JMMwimCGVmT974b07Km9U2"><ul data-page-node-id="Ch5UeMnES0GV7ZHEcwFT34">
+<li data-page-node-id="VGaTCqFGkg4PMlBuKTu0q1"><b data-page-node-id="Da1A5RjnDDrF2k9YJVjgqZ">资产数字优先</b>：金额、Drama、积分是核心信息，等宽字体（tabular-nums）、右对齐、大号展示。</li>
+<li data-page-node-id="FjRbLZN8t4vhlokWtUAdUb"><b data-page-node-id="zLkEFijH7PHkQ2t4rpFeu0">双区视觉区分</b>：普通区（灰系 surface）与创新区（紫系 primary-bg）一眼可辨，避免误入。</li>
+<li data-page-node-id="qO9v2WcjfrVdEpZuKAACXH"><b data-page-node-id="AwMGNMhCjdMKGOjb7LAERl">风险前置</b>：占用/缺口/兑付等风险状态用暖色警示（#993C1D 系），不放隐藏折叠里。</li>
+<li data-page-node-id="zJfR9WUptFN4AP9GVOdABH"><b data-page-node-id="u80BWoaEfURqT07RmgpxdF">合规红线</b>：全站禁「投资/收益/保本/复利承诺」表述，用「增长/结算/发放」替代；首屏不得出现 token/加密语。</li>
+</ul></div>
+
+<h2 data-page-node-id="YHwYUGiMUg6pkPLIWbWtv3">2. Design Tokens</h2>
+<div class="card" data-page-node-id="BCO5lLeOENZGxpE8lQueEe">
+<table data-page-node-id="FqNratQmV5gMVak4NtHKfB">
+<tr data-page-node-id="1umr7IHQRGqzTTZWoy1CQU"><th data-page-node-id="zw6f8afmjWh0J0qkq4wDvF">Token</th><th data-page-node-id="uFnlICgltP4m0NkBCy9JO2">值</th><th data-page-node-id="qA6GNPEA7S2Aq69aJU7Gol">用途</th></tr>
+<tr data-page-node-id="Tllpc7XBtsRbxfPHyGxABQ"><td data-page-node-id="u59RTMCgNcBqr51ZxbMvpH"><span class="swatch" style="background:#534AB7" data-page-node-id="4yZ2cbvweqJZG5DT604VlJ"></span><code data-page-node-id="mGgHeC4IejcHQHrEFBDkC5">color.primary</code></td><td data-page-node-id="AzO1BPgcQJdJ1g7Sqn5sCc">#534AB7</td><td data-page-node-id="zRGl0R6v3t6kEFBMoLqYvv">主操作、创新区标识、进度条</td></tr>
+<tr data-page-node-id="tSgOHICyHoTZjBjDNp8g7G"><td data-page-node-id="0660Oy7F50OjqoKls1TnDC"><span class="swatch" style="background:#EEEDFE" data-page-node-id="CdrBlXSBr0WLDNn8J2vxpl"></span><code data-page-node-id="E7zTVfsV0Tq2axr8GQLDZ7">color.primary-bg</code></td><td data-page-node-id="spGRAdscfmaetLpHmBsiTf">#EEEDFE</td><td data-page-node-id="gox4hNsehQeaAusaCMB5uu">创新区底色、标签底</td></tr>
+<tr data-page-node-id="lq2JfM5Apy9vTGwzvJdiXz"><td data-page-node-id="BTWerdQNZCWL2BLjnbmhff"><span class="swatch" style="background:#26215C" data-page-node-id="viRemzRskDAlp5YvT63Ydp"></span><code data-page-node-id="IwfamV7NNGrD4pTqCaR33i">color.ink</code></td><td data-page-node-id="25FPR8FAcCHad3tSXE6xOb">#26215C</td><td data-page-node-id="cF0z9qWAmfLhvEWlvKvlN2">正文、资产大数字</td></tr>
+<tr data-page-node-id="2GabGyHEeteK4kK9jHhFjg"><td data-page-node-id="a0IbINwV3Eoy3ZENS7srCW"><span class="swatch" style="background:#993C1D" data-page-node-id="dLK91PLCQVawIO3lEDFYFk"></span><code data-page-node-id="OOPxOeQikFxZmi12Vm1rqM">color.price</code></td><td data-page-node-id="xZJtTygBu7fOlwAsup9PpD">#993C1D</td><td data-page-node-id="CZuAN9pStqG5A9AE9kmSAw">价格、需占用、警示金额</td></tr>
+<tr data-page-node-id="3nDZZ3YDPEjMIoataokxsF"><td data-page-node-id="ijjHzWJkjZfuaoszghW4TY"><span class="swatch" style="background:#F1EFE8" data-page-node-id="cE0M5bLUQLvOaJemMRLzCd"></span><code data-page-node-id="pn3WwoG6WZ5jwdmQF979DJ">color.surface</code></td><td data-page-node-id="7YAMRPDpU95Zs8HPigDfsu">#F1EFE8</td><td data-page-node-id="nsDlrWhQEGiSeFgmW4W7Hj">页面底、普通区底色</td></tr>
+<tr data-page-node-id="J5q9yluMTnBfy3CYbz1fkK"><td data-page-node-id="UKvkozMJmE8VfUkDZ2ZY9f"><span class="swatch" style="background:#C53030" data-page-node-id="EduOtPLFJfVKYYaEkDaCi3"></span><code data-page-node-id="FJfTdpwkhAWkQDC1DOy8Bd">color.up</code></td><td data-page-node-id="G25CATdWqkEnLhuidZ1qE0">#C53030</td><td data-page-node-id="4C3qlvqdrBwnsLXXqYMNRK">涨（中国习惯红涨）</td></tr>
+<tr data-page-node-id="PsrrzLr6MsROaR6OZzC0pn"><td data-page-node-id="iAxu1cyEghz65cTJo9Ry4n"><span class="swatch" style="background:#2F855A" data-page-node-id="YebJ7ES9GFsgYzAOziOs4l"></span><code data-page-node-id="bf35DbIEGWjHnkp7uRVXC1">color.down</code></td><td data-page-node-id="H29dksf5yvF5dEvl1QuLX6">#2F855A</td><td data-page-node-id="8zJZRJcVOWWdSaGtBXEvhJ">跌</td></tr>
+<tr data-page-node-id="Cnub5Zu3iewqmsigoerNzA"><td data-page-node-id="D9gO1Z4oOvBAIHFytpJPbx"><code data-page-node-id="M9YwfCOeKX55n1Hoft94K2">radius</code></td><td data-page-node-id="DDaAVErMmihXx5xdRuDJ85">14px</td><td data-page-node-id="865bJqlIeApoqZDlqGllto">卡片圆角统一</td></tr>
+<tr data-page-node-id="TMgoQsXET60CkmY1Yj2amC"><td data-page-node-id="0LOJVeBi2qNlg01bSdyUYm"><code data-page-node-id="L9TlSF6OmBU0vIpQWMEnL9">font.num</code></td><td data-page-node-id="kjbp3qhNlWJdI2oAzGGJuc">tabular-nums</td><td data-page-node-id="pASzGG0LFVYQKfozybYYzO">所有金额/Drama/积分</td></tr>
+</table>
+</div>
+
+<h2 data-page-node-id="SlhaA9UYfaITyEwBNGa5JD">3. 信息架构（IA）</h2>
+<div class="card" data-page-node-id="1ZABK6ETtqEL5eiEed4anF">
+<p data-page-node-id="2kHUUs9l5FFlt5POoIjE1w">App 底部 4 Tab：</p>
+<table data-page-node-id="GL5CVGU5xHjNNWPpSCuuyz">
+<tr data-page-node-id="jmE2Tb8AB2A7ltiRVhqAP9"><th data-page-node-id="DUFEp1r0ra6uUNHAwaRIdP">Tab</th><th data-page-node-id="WCrdGvjUkNPblB2y20WWN6">内容</th><th data-page-node-id="0WU1trFdlrlFiwx5FDoU0t">对应业务</th></tr>
+<tr data-page-node-id="THGS3gFkYPG3LBQzLz2DjQ"><td data-page-node-id="5hpfc0lTiBNLZzFWNm57Fp"><b data-page-node-id="J17vtiCzMMdUuiX3dFwE5G">首页</b></td><td data-page-node-id="j0tI5alcJKAaZB7S8xpKQh">资产总览（Drama 余额/生态积分/持仓）、抢购场次（普通区/创新区分列）、快捷入口</td><td data-page-node-id="lPpFn5MzItBybmcgnzdjPL">场次日历、档位表（300–35,000）</td></tr>
+<tr data-page-node-id="3eLP13zbqaKI1xdqOVHtVG"><td data-page-node-id="qoHdQ0MZLoFKIluVgCGHys"><b data-page-node-id="sARnL8tRfnkFu9hkgMrdCZ">市场</b></td><td data-page-node-id="H6eKYdq2qAZ4GhrHRxX5cf">P2P 挂单列表、成交记录、价格走势</td><td data-page-node-id="Fkb6VADv1tW6yOu3gurAQj">LISTED 单匹配、60 分钟 txid 核验</td></tr>
+<tr data-page-node-id="nq5pppmKBtR0TPfHzR9ZBK"><td data-page-node-id="zD7begPZDLf4HKOoPJrEWi"><b data-page-node-id="fDLlBs7Fp76JFJzNz0PTu8">我的持仓</b></td><td data-page-node-id="KXGfaCHukECReGJvOtliUz">持仓卡（状态机流转）、卖出流程（占用 Drama 提示）、瀑布结算明细</td><td data-page-node-id="Yb5KZ7k3g734bUpUerB4Bv">HOLDING→MATURED→READY_TO_LIST→LISTED→MATCHED→SOLD</td></tr>
+<tr data-page-node-id="rtHwJpYC47vcUw3y1y3mMO"><td data-page-node-id="XBw1v7BSFJEk1Ve5vsqQeu"><b data-page-node-id="kuCHp4Cd5GiHy3bXlomXjS">我的</b></td><td data-page-node-id="ZMZcXgpbETIt2hepS0HQSB">团队（10 代返佣 1-3 代 7% / 4-10 代 2%）、入金（USDT 转账+txid 提交）、积分明细、设置</td><td data-page-node-id="hUfwEBl7kpE6XdmvqYFeLg">70/15/15 拆分、1:1 积分转换</td></tr>
+</table>
+<p style="margin-top:12px" data-page-node-id="FVDv7vPlppIVKSzp1AGSVu">弹层 3 个：<b data-page-node-id="aQCBCIgqqDCsTeavSs8ZaN">抢购确认</b>（场次+档位+手续费）、<b data-page-node-id="01XiJtAPSeMAp3nR9gdB5o">卖出确认</b>（占用=增长×85% 校验）、<b data-page-node-id="TnABfJ9pBI2BRB8USUPws8">入金指引</b>（TRC-20≥19 确认 / BSC≥15 确认）。</p>
+</div>
+
+<h2 data-page-node-id="059jfKDQNUHc2hw1MJ3Edq">4. 核心组件规范</h2>
+<div class="grid2" data-page-node-id="vfOYZjb24XxJBSOG4MOkNo">
+<div class="card" data-page-node-id="rzCKDucSr7cKZsZiFN7IGk"><h3 data-page-node-id="sM17d1z3EPgwhpFIt8Ws85">持仓卡</h3>
+<ul data-page-node-id="Z1OCV5vDf0gwlIatH9FIat">
+<li data-page-node-id="D2KXxc3gM5Wd3VNMqioQwR">状态徽标：持有中/已到账/可挂单/挂单中/匹配中/已售（含待补充态）</li>
+<li data-page-node-id="C6Q0VpzQ0oGHq5ExEgcYO2">数字行：账面价（复利后）> 本金 > 增长</li>
+<li data-page-node-id="TEt7Fmn88ipggQHtNr1IC3">占用提示：<span class="mono" data-page-node-id="PTirunmIAS27nmFdRiJlUR">需占用 = 增长 × 85%</span>，余额不足显示缺口与「补充」按钮</li>
+<li data-page-node-id="jAE6syz1Q5InUtli3dWqMf">MATURED 态账面价 = 本金 × (1+日增长)^7 复利展示</li>
+</ul></div>
+<div class="card" data-page-node-id="RclirfNZB5SSfjvod9HlCd"><h3 data-page-node-id="FFaBGoIMwU6oSeqVEudGWK">场次卡</h3>
+<ul data-page-node-id="dpczhfJ03Ev5mOVpdGpb2j">
+<li data-page-node-id="9K2RPBY8gOW8rbw4pEkBWZ">普通区灰底、创新区紫底，场次日历（周二/四/六双场）</li>
+<li data-page-node-id="p6I5YxADvUjYkgATr2bzWE">档位：区间（USDT）+ 手续费；档位表以文档为准，禁止杜撰区间</li>
+<li data-page-node-id="AH1Lmi89gUtDSFH8suQb6y">抢购按钮置灰条件：未到时间/余额不足/已达上限</li>
+</ul></div>
+<div class="card" data-page-node-id="DRv1zSA8BeKhbcJ9fBcWLi"><h3 data-page-node-id="OBZnFtvYItKO3NTMpe2oNI">瀑布结算明细</h3>
+<ul data-page-node-id="GfJVPNLEFVmjK6xB5yArW9">
+<li data-page-node-id="Wf0ycE5dOt2q1ZWqZxTJfz">卖出成交后展开：手续费 70% / 现金 15% / 生态积分 15%</li>
+<li data-page-node-id="h6esXl8gvwY3kjjCy54zR5">积分入账 1:1（如增长 45 Drama → 45 积分），标注「生态积分，不可兑回 Drama」</li>
+</ul></div>
+<div class="card" data-page-node-id="9S3FtZMYkdoxmsxqyvnOac"><h3 data-page-node-id="EBwGHpgCxg4xntZ4zuDq7g">入金指引</h3>
+<ul data-page-node-id="lWPAxIKgPLIqWxrye5BEME">
+<li data-page-node-id="cGmRwVCW0djrJx5kfJ1Mto">1 Drama = 1 USDT 锚定说明</li>
+<li data-page-node-id="ynMa4zdiVlTe0WrYyyQmiq">链与确认数：TRC-20 ≥19 确认、BSC ≥15 确认</li>
+<li data-page-node-id="K7EY5ZvQvUDaaZfRqNNPTH">txid 提交 + 唯一索引提示 + 到账倒计时（60 分钟核验为卖出场景）</li>
+</ul></div>
+</div>
+
+<h2 data-page-node-id="qyB2seh6kbxyvRMuBnUiXq">5. 状态机与 UI 映射</h2>
+<div class="card" data-page-node-id="4MMTyVdsE95S5qTDX6llfd">
+<div class="state-flow" data-page-node-id="DDQQPTBTjBtvt7NPxomIFo">HOLDING → MATURED → READY_TO_LIST → LISTED → MATCHED → SOLD（分支：DAO_INSUFFICIENT 待补充态）</div>
+<table style="margin-top:12px" data-page-node-id="DsnkOmj8U2W1EAyGQvqAHC">
+<tr data-page-node-id="HvWpfSHBJtI02EgKc8UDQG"><th data-page-node-id="MQDMGxG0xGlNdoo46I9tJq">状态</th><th data-page-node-id="60bJjpv4Kr5JgOIcsKoJ4E">UI 表现</th><th data-page-node-id="q1PWTUZGgiER1m1QIh7SDW">可用操作</th></tr>
+<tr data-page-node-id="5QmLphBK8wKTR469JE6jea"><td data-page-node-id="NnyvoFI9oGCwtLO9A0hz0O">HOLDING</td><td data-page-node-id="hTdpRBcRoNrbPe3EpZlvWb">倒计时 7 天，日增长累计展示</td><td data-page-node-id="1zncnixiplu5yO12cweuGY">无（查看明细）</td></tr>
+<tr data-page-node-id="4QdGdRz66OXH6BpRcDWOhc"><td data-page-node-id="px549XJZRNOD2P0EWs5mGN">MATURED</td><td data-page-node-id="JrDdjoiBM1dEFFpvYGCEgo">复利账面价高亮</td><td data-page-node-id="vJVGLZfIVOMvu2fLZhxTD0">申请卖出 → 校验占用</td></tr>
+<tr data-page-node-id="MLZt8IObvYjOGe6n7hvkj4"><td data-page-node-id="bMZOfH6EbkteuvOs3jELSv">DAO_INSUFFICIENT</td><td data-page-node-id="TzEDmaEDquif9fPr0arwWB">暖色警示：需占用 / 可用 / 缺口</td><td data-page-node-id="PC4a9tgFfV4ygCPOfjda7V">补充 Drama 或积分</td></tr>
+<tr data-page-node-id="lb7uuFdF4DMQQr9XW44cSp"><td data-page-node-id="tUuQDDmDqZk8r2mC5NnAjP">READY_TO_LIST / LISTED</td><td data-page-node-id="Gms9qQSpzOvbCaKHPM0Xf4">挂单价、匹配进度</td><td data-page-node-id="p0yHwQmg2JjLWQWcqd5C5R">撤单</td></tr>
+<tr data-page-node-id="ApmeIB0CzNQXW84oC6lHOE"><td data-page-node-id="s5oHb9RfjjKc1LNLJLYjAj">MATCHED</td><td data-page-node-id="hXr76TKCsOHsB6FZaABqvt">60 分钟 txid 核验倒计时</td><td data-page-node-id="DMCVJ9DUwQst6KyhKZyz6A">等待 / 申诉</td></tr>
+<tr data-page-node-id="JEt2vONJXGOALqA9AggOT3"><td data-page-node-id="wGoLf8AQHI7rf6inPOOnzx">SOLD</td><td data-page-node-id="VwYcp8frAmrGzXRHyU2AQ0">瀑布明细 + 积分入账 1:1</td><td data-page-node-id="ZW9lqAEulILP3AHIs6rYWl">查看凭证</td></tr>
+</table>
+</div>
+
+<h2 data-page-node-id="fVJa9oKbr1lguW0jpupknP">6. 合规规范（硬约束）</h2>
+<div class="card" data-page-node-id="YIxr2CMZGJkHUoMX3HxS8X">
+<div class="warn" data-page-node-id="EjFgkN0w9hzXd015HGw2c5">⚠️ 以下为上线审查项，任一违规即打回。</div>
+<ul data-page-node-id="FgcXw9iVxWIURdxXXec533">
+<li data-page-node-id="QOaaHykPW6dkXrsyqAJQBk">禁用词：投资、收益、保本、年化、复利承诺、躺赚；替代词：增长、结算、发放、持有到期</li>
+<li data-page-node-id="f8VP4NRjrbm7rsCM62mncp">首屏与启动页禁止出现 token/加密/区块链投机相关语（版权存证表述可用）</li>
+<li data-page-node-id="nUsuLuCWjsigHXgBZ8zp9S">所有涉及「15% 生态积分」处必须附带「积分不可兑回 Drama/USDT」说明</li>
+<li data-page-node-id="5snuSSrBsobFAb91FBrmNa">返佣展示须标注层级来源（1-3 代 / 4-10 代），不承诺固定收入</li>
+<li data-page-node-id="qAAKOSAHM5uAhUdfKE6lhi">金额单位统一：USDT 计价 + Drama 计价并存时，需标明 1 Drama = 1 USDT</li>
+</ul>
+</div>
+
+<h2 data-page-node-id="1tNrQPwe1kHw8C8jTI7qMH">7. 交付物与验收</h2>
+<div class="card" data-page-node-id="yyPOVfVvRmFR6tE3YRb4xM">
+<ul data-page-node-id="FLEKAeKqgBjHNVwxCLmlMk">
+<li data-page-node-id="WTxEHkzGp4vDlmXCe3Tfi9">本文档：设计规范（tokens / IA / 组件 / 合规）</li>
+<li data-page-node-id="m2X7idc2eKIiCDyoduAreJ">《DramaX_界面原型.html》：高保真单文件原型，4 Tab + 3 弹层，全部数字与 V2.1 业务口径一致（占用=增长×85%、7 天复利、1:1 积分、档位表以文档为准）</li>
+<li data-page-node-id="qdJT3dldB4cOX3l5MASo3W">验收：QA 双口径抽查（业务规则 × 展示数字）通过后方可交付</li>
+</ul>
+</div>
+
+</div>
+</body>
+</html>

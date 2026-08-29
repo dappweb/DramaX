@@ -1,0 +1,44 @@
+name = "dramax-api"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ─── D1 业务主库（账本只追加 + batch 原子写） ───
+[[d1_databases]]
+binding = "DB"
+database_name = "dramax"
+database_id = "<TODO: wrangler d1 create dramax 后填入>"
+
+# ─── KV：支付意图（TTL 30min）/ JWT 黑名单 ───
+[[kv_namespaces]]
+binding = "INTENTS"
+id = "<TODO: wrangler kv namespace create INTENTS 后填入>"
+
+# ─── Queues：链上事件削峰 → 入账引擎 ───
+[[queues.producers]]
+binding = "EVENTS"
+queue = "dramax-chain-events"
+
+[[queues.consumers]]
+queue = "dramax-chain-events"
+max_batch_size = 10
+max_retries = 5
+dead_letter_queue = "dramax-chain-events-dlq"
+
+# ─── Cron Triggers（Workers 最小粒度 1 分钟） ───
+# Indexer：每分钟轮询 BSC getLogs（15 确认≈45s，1 分钟粒度满足时效）
+# 到期/超时扫描：每分钟；每日增长结算：00:05；三方对账：01:30
+[triggers]
+crons = [
+  "* * * * *",      # indexer 扫描 + 支付广播超时扫描 + 到期扫描
+  "5 0 * * *",      # 每日增长结算（复利快照）
+  "30 1 * * *",     # 每日三方对账
+]
+
+[vars]
+ENV = "production"
+ALLOWED_ORIGIN = "https://m.dramax.ai,https://admin.dramax.ai"  # 逗号分隔多域（移动端 / Admin 端 Pages 项目）
+ADMIN_OWNER_WALLET = ""  # owner 钱包地址（0x...，小写）；Admin 钱包登录首登自举建档
+
+# ─── Secrets（wrangler secret put 注入，禁止入库） ───
+# JWT_SECRET / BSC_RPC_URL / ADMIN_INITIAL_PASSWORD
