@@ -18,6 +18,11 @@
     ├── src/trading.ts        # 卖出/挂单/撮合/积分/团队/账本 + settleMatch 结算（已实现）
     ├── src/util.ts           # 整数分金额运算 / 零依赖 HS256 JWT / BSC JSON-RPC / SIWE 验签
     └── migrations/0001_init.sql  # 16 表 DDL（账本只追加 + tx_hash 幂等）
+└── apps/mobile/              # 移动端 H5 DApp（Next.js 14 静态导出 + wagmi/viem）
+    ├── next.config.mjs       # output:export → out/ → Cloudflare Pages
+    └── src/                  # 4 Tab：首页(场次/抢购) · 市场(挂单/撮合) · 持仓(全状态机) · 我的(充值/返佣/积分)
+        ├── lib/              # wagmi(BSC+injected) / api 客户端 / SIWE 登录
+        └── components/       # Shell(钱包连接+SIWE 登录门) / PaymentSheet(USDT 直付+轮询入账) 等
 ```
 
 ## 已实现的核心流程
@@ -71,7 +76,7 @@ secrets 用 `wrangler secret put` 注入（JWT_SECRET / BSC_RPC_URL / ADMIN_INIT
    SIWE = parseSiweMessage(nonce/domain/address 一致性) + recoverMessageAddress 签名恢复（本地验证，登录路径无 RPC 依赖），nonce 改为字母数字；
    admin = bcryptjs compare，bootstrap 首登自愈固化哈希
 2. ~~卖出/挂单/撮合/积分/团队路由~~ ✅ 已实现（src/trading.ts，tsc --strict 0 错误）：sell-intent 冻结占用 / topup 缺口生成支付意图 / 挂单·撤单（CAS 解冻）/ 撮合 15min 窗口 / settleMatch 瀑布结算+10 代返佣记账 / credits·team·ledger 只读
-3. apps/mobile：Next.js 14 静态导出（wagmi/viem，对照《09_原型/DramaX_移动端原型.html》）
+3. ~~apps/mobile~~ ✅ 已实现（Next.js 14 静态导出 + wagmi/viem）：钱包连接 → SIWE 登录 → 场次抢购 → 持仓全状态机（卖出意向/补足占用/挂单）→ 市场撮合 → PaymentSheet USDT 直付（盐值金额 + 轮询 15 确认入账）。构建：`cd apps/mobile && npm install && npm run build`，产物 out/ 部署 Pages（`npm run deploy`）；`NEXT_PUBLIC_API_BASE` 指向 Workers API
 4. apps/admin：独立 Pages 项目（对照《09_原型/DramaX_Admin端原型.html》）
 5. Turnstile 接入 + WAF 区域屏蔽规则下发；超额支付处理策略（待拍板）落 consumer；持仓转移语义（买家新 HOLDING / 重置周期）待拍板
 
