@@ -2,6 +2,7 @@
 
 import { createSiweMessage } from "viem/siwe";
 import { api, setToken } from "./api";
+import { CHAIN_ID_EXPORT } from "./wagmi";
 
 /**
  * SIWE 登录闭环：
@@ -22,7 +23,7 @@ export async function loginWithWallet(
     address,
     statement: "Sign in to DramaX",
     version: "1",
-    chainId: 56,
+    chainId: CHAIN_ID_EXPORT,
     nonce,
   });
   const signature = await signMessage(message);

@@ -27,6 +27,10 @@ export async function connectWallet(): Promise<string> {
  * GET /admin/auth/nonce → createSiweMessage → personal_sign → POST /admin/auth/login
  * 服务端校验签名与 admins.wallet；ADMIN_OWNER_WALLET 配置的 owner 钱包首登自举建档（role=owner）。
  */
+// 链由构建时 NEXT_PUBLIC_CHAIN_ID 决定（56 mainnet 默认 / 97 testnet 演示）
+const CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 56);
+export const ADMIN_CHAIN_ID = CHAIN_ID;
+
 export async function adminWalletLogin(
   address: string,
   turnstileToken?: string
@@ -41,7 +45,7 @@ export async function adminWalletLogin(
     address: address as `0x${string}`,
     statement: "Sign in to DramaX Admin",
     version: "1",
-    chainId: 56,
+    chainId: CHAIN_ID,
     nonce,
   });
   const signature = (await provider.request({

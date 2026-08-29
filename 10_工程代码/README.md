@@ -84,6 +84,28 @@ nonce put 失败导致登录 500 → nonce/支付意图/扫描游标全部改落
 4. PLATFORM_ADDRESSES（平台归集地址池）未配置——支付意图端点会 503，配置后即通。
    ADMIN_OWNER_WALLET 待填 owner 钱包地址（vars）。
 
+## BSC Testnet 演示环境（✅ 2026-08-29 已部署，chainId 97）
+
+**线上地址**：
+- API：https://dramax-api-testnet.dappweb.workers.dev（env=testnet，chain 97，testnet USDT）
+- 移动端：https://dramax-mobile-testnet.pages.dev
+- Admin：https://dramax-admin-testnet.pages.dev
+
+**资源**：D1 `dramax-testnet`（id 466f37be…，18 表 + 演示数据）、复用主 KV、Queues `dramax-chain-events-testnet`(+dlq)、
+secrets JWT_SECRET / BSC_RPC_URL（data-seed-prebsc）/ ADMIN_INITIAL_PASSWORD。
+vars：CHAIN_ID=97、USDT_CONTRACT=0x3376…6c7（testnet USDT）、CHAIN_CONFIRMATIONS=5、
+PLATFORM_ADDRESSES=0xb7940a57d5fb0288776f95047467e3d72eed9e09、BLOCKED_COUNTRIES=""（演示不屏蔽）。
+
+**演示数据（0003_seed_testnet_demo.sql）**：owner 管理员（0xb794…）+ 3 个演示用户（余额 5000/12000/3000）+
+6 个剧本（LISTED×4：闪婚老公是首富 300 / 重生之商界女王 500 / 隐世神医在都市 400 / 千亿婚宠 600；REVIEWING / DRAFT 各 1）+
+6 个场次（普通区×3、创新区×3，含 1 个 CLOSED 满员）+ 6 个持仓 + 2 个挂单 + 3 条增长流水。
+
+**演示流程**：钱包切 BSC testnet（水龙头 https://testnet.bnbchain.org 领 testnet BNB/USDT）→
+移动端连接钱包 SIWE 登录 → 浏览市场挂单/场次；Admin 用 owner 钱包（0xb794…）登录管理剧本与场次。
+
+**部署命令**：worker `npm run deploy:testnet`（= `wrangler deploy -e testnet`）；
+前端 `npm run deploy:testnet`（= 注入 NEXT_PUBLIC_CHAIN_ID=97 + API base 后构建并部署 Pages）。
+
 ## 下一迭代（按优先级）
 
 1. ~~SIWE 验签接 viem + bcrypt 管理员登录~~ ✅ 已实现（tsc --strict 0 错误 + 真钱包签名冒烟 5 项 PASS）：

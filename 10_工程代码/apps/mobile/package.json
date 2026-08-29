@@ -6,7 +6,8 @@
     "dev": "next dev -p 3100",
     "build": "next build",
     "typecheck": "tsc --noEmit",
-    "deploy": "wrangler pages deploy out --project-name dramax-mobile"
+    "deploy": "wrangler pages deploy out --project-name dramax-mobile",
+    "deploy:testnet": "NEXT_PUBLIC_CHAIN_ID=97 NEXT_PUBLIC_API_BASE=https://dramax-api-testnet.dappweb.workers.dev npm run build && wrangler pages deploy out --project-name dramax-mobile-testnet"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.59.0",

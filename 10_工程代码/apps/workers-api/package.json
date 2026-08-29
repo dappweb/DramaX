@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "deploy:testnet": "wrangler deploy -e testnet",
     "typecheck": "tsc --noEmit",
     "db:init": "wrangler d1 execute dramax --local --file=./migrations/0001_init.sql",
     "db:migrate": "wrangler d1 migrations apply dramax"

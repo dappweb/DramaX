@@ -23,6 +23,18 @@ export interface Env {
   TURNSTILE_SECRET: string;   // wrangler secret put TURNSTILE_SECRET（未配置=开发环境跳过校验）
   TURNSTILE_HOSTNAMES: string; // 逗号分隔前端域名白名单（m.dramax.ai,admin.dramax.ai）
   BLOCKED_COUNTRIES: string;  // 逗号分隔 ISO 国家码，区域屏蔽（默认 CN；合规：不面向中国大陆提供服务）
+  CHAIN_ID?: string;          // 链覆盖（testnet=97）；缺省用 shared.CHAIN.ID(56)
+  USDT_CONTRACT?: string;     // USDT 合约覆盖（testnet 0x3376…6C7）；缺省用 shared.CHAIN.USDT
+  CHAIN_CONFIRMATIONS?: string; // 确认数覆盖；缺省 15
+}
+
+// 链参数：环境变量覆盖 > shared 单一事实源（mainnet BSC 56 / testnet 97）
+export function chainOf(env: Env) {
+  return {
+    id: Number(env.CHAIN_ID ?? rules.CHAIN.ID),
+    usdt: (env.USDT_CONTRACT ?? rules.CHAIN.USDT).toLowerCase(),
+    confirmations: Number(env.CHAIN_CONFIRMATIONS ?? rules.CHAIN.CONFIRMATIONS),
+  };
 }
 
 export interface ChainEvent {
@@ -55,7 +67,7 @@ app.use("*", (c, next) => {
   return cors({ origin: origins.length > 1 ? origins : origins[0] ?? "*" })(c, next);
 });
 
-app.get("/health", (c) => c.json({ ok: true, chain: rules.CHAIN.ID, tiers: rules.TIERS.length, ts: Date.now() }));
+app.get("/health", (c) => c.json({ ok: true, chain: chainOf(c.env).id, usdt: chainOf(c.env).usdt, tiers: rules.TIERS.length, ts: Date.now() }));
 
 // ─── 鉴权中间件（用户） ───
 async function requireUser(c: any): Promise<{ sub: string } | null> {
@@ -138,7 +150,7 @@ app.post("/payments/intent", async (c) => {
 
   return c.json({
     intentId, payee, saltAmount: salted.saltAmount.toFixed(2),
-    chainId: rules.CHAIN.ID, usdt: rules.CHAIN.USDT,
+    chainId: chainOf(c.env).id, usdt: chainOf(c.env).usdt,
     confirmations: rules.CHAIN.CONFIRMATIONS, expiresAt,
     memo: `金额含系统识别码 0.${String(salted.cents).padStart(2, "0")}`,
   }, 201);
@@ -232,20 +244,20 @@ export default {
     ctx.waitUntil((async () => {
       const latestHex = await rpc<string>(env.BSC_RPC_URL, "eth_blockNumber", []);
       const latest = parseInt(latestHex, 16);
-      let last = Number((await kvGet(env.DB, "scan:lastBlock")) ?? latest - rules.CHAIN.CONFIRMATIONS - 1);
+      let last = Number((await kvGet(env.DB, "scan:lastBlock")) ?? latest - chainOf(env).confirmations - 1);
       const from = last + 1;
-      const to = Math.min(from + 499, latest - rules.CHAIN.CONFIRMATIONS); // 安全深度内增量
+      const to = Math.min(from + 499, latest - chainOf(env).confirmations); // 安全深度内增量
       if (from <= to) {
         const platform = (env.PLATFORM_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
         if (!platform.length) {
           // PLATFORM_ADDRESSES 未配置：跳过链上扫描，仅做超时/到期扫描（防止 getLogs 空 topics 匹配全量 USDT 转账）
           await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();
-          await kvPut(env.DB, "scan:lastBlock", String(latest - rules.CHAIN.CONFIRMATIONS));
+          await kvPut(env.DB, "scan:lastBlock", String(latest - chainOf(env).confirmations));
           return;
         }
         const logs: any[] = await rpc(env.BSC_RPC_URL, "eth_getLogs", [
           {
-            address: rules.CHAIN.USDT,
+            address: chainOf(env).usdt,
             topics: [TRANSFER_TOPIC, null, platform.map(padAddr)],
             fromBlock: "0x" + from.toString(16),
             toBlock: "0x" + to.toString(16),
@@ -267,7 +279,7 @@ export default {
           // INSERT OR IGNORE = (tx_hash, log_index) 幂等
           await env.DB.prepare(
             `INSERT OR IGNORE INTO chain_events (tx_hash, log_index, block_no, block_hash, contract_addr, from_addr, to_addr, amount, status, intent_id) VALUES (?,?,?,?,?,?,?,?, 'PENDING', ?)`
-          ).bind(ev.txHash, ev.logIndex, ev.blockNo, ev.blockHash, rules.CHAIN.USDT, ev.from, ev.to, (ev.cents / 100).toFixed(2), ev.intentId).run();
+          ).bind(ev.txHash, ev.logIndex, ev.blockNo, ev.blockHash, chainOf(env).usdt, ev.from, ev.to, (ev.cents / 100).toFixed(2), ev.intentId).run();
           await env.EVENTS.send(ev);
         }
         last = to;
@@ -291,7 +303,7 @@ export default {
       if (!row || row.status === "CREDITED") { msg.ack(); continue; }
 
       const latest = parseInt(await rpc<string>(env.BSC_RPC_URL, "eth_blockNumber", []), 16);
-      if (latest - ev.blockNo < rules.CHAIN.CONFIRMATIONS) { msg.retry({ delaySeconds: 30 }); continue; }
+      if (latest - ev.blockNo < chainOf(env).confirmations) { msg.retry({ delaySeconds: 30 }); continue; }
 
       // reorg：块哈希不匹配 → 回滚未入账事件
       const block = await rpc<any>(env.BSC_RPC_URL, "eth_getBlockByNumber", ["0x" + ev.blockNo.toString(16), false]);

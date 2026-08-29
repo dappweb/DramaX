@@ -40,3 +40,39 @@ BLOCKED_COUNTRIES = "CN"  # 区域屏蔽（request.cf.country 边缘判定，返
 
 # ─── Secrets（wrangler secret put 注入，禁止入库） ───
 # JWT_SECRET / BSC_RPC_URL / ADMIN_INITIAL_PASSWORD / TURNSTILE_SECRET
+
+# ═══ testnet 环境（BSC testnet 97 演示）：wrangler deploy -e testnet ═══
+[env.testnet]
+name = "dramax-api-testnet"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[env.testnet.d1_databases]]
+binding = "DB"
+database_name = "dramax-testnet"
+database_id = "466f37be-bc9e-4686-9d6d-e9590b11f9df"
+
+[[env.testnet.kv_namespaces]]
+binding = "INTENTS"
+id = "649e13b13e584a94b072b5f5b976878e"  # 复用主 KV（代码已改用 D1 kv 表，此绑定仅占位）
+
+[[env.testnet.queues.producers]]
+binding = "EVENTS"
+queue = "dramax-chain-events-testnet"
+
+[[env.testnet.queues.consumers]]
+queue = "dramax-chain-events-testnet"
+max_batch_size = 10
+max_retries = 5
+dead_letter_queue = "dramax-chain-events-testnet-dlq"
+
+[env.testnet.vars]
+ENV = "testnet"
+CHAIN_ID = "97"
+USDT_CONTRACT = "0x337610d27c682e343c6b37a2612972e85331c6c7"  # BSC testnet USDT
+CHAIN_CONFIRMATIONS = "5"  # testnet 出块快，5 确认足够
+PLATFORM_ADDRESSES = "0xb7940a57d5fb0288776f95047467e3d72eed9e09"  # 演示归集地址
+ADMIN_OWNER_WALLET = "0xb7940a57d5fb0288776f95047467e3d72eed9e09"  # owner = 演示钱包
+ALLOWED_ORIGIN = "https://dramax-mobile-testnet.pages.dev,https://dramax-admin-testnet.pages.dev,http://localhost:3000,http://localhost:3001"
+TURNSTILE_HOSTNAMES = "dramax-mobile-testnet.pages.dev,dramax-admin-testnet.pages.dev,localhost,127.0.0.1"
+BLOCKED_COUNTRIES = ""  # 演示环境不屏蔽地区

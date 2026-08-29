@@ -79,7 +79,7 @@ export function AdminShell() {
           </button>
         ))}
         <div className="foot">
-          BSC · chainId 56<br />
+          BSC · chainId {process.env.NEXT_PUBLIC_CHAIN_ID ?? 56}<br />
           参数变更需多签 + 审计
         </div>
       </aside>
