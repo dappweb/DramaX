@@ -1,0 +1,24 @@
+{
+  "name": "@dramax/admin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3200",
+    "build": "next build",
+    "typecheck": "tsc --noEmit",
+    "deploy": "wrangler pages deploy out --project-name dramax-admin"
+  },
+  "dependencies": {
+    "next": "^14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.9.0",
+    "wrangler": "^4.0.0"
+  }
+}

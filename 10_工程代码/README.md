@@ -77,6 +77,6 @@ secrets 用 `wrangler secret put` 注入（JWT_SECRET / BSC_RPC_URL / ADMIN_INIT
    admin = bcryptjs compare，bootstrap 首登自愈固化哈希
 2. ~~卖出/挂单/撮合/积分/团队路由~~ ✅ 已实现（src/trading.ts，tsc --strict 0 错误）：sell-intent 冻结占用 / topup 缺口生成支付意图 / 挂单·撤单（CAS 解冻）/ 撮合 15min 窗口 / settleMatch 瀑布结算+10 代返佣记账 / credits·team·ledger 只读
 3. ~~apps/mobile~~ ✅ 已实现（Next.js 14 静态导出 + wagmi/viem）：钱包连接 → SIWE 登录 → 场次抢购 → 持仓全状态机（卖出意向/补足占用/挂单）→ 市场撮合 → PaymentSheet USDT 直付（盐值金额 + 轮询 15 确认入账）。构建：`cd apps/mobile && npm install && npm run build`，产物 out/ 部署 Pages（`npm run deploy`）；`NEXT_PUBLIC_API_BASE` 指向 Workers API
-4. apps/admin：独立 Pages 项目（对照《09_原型/DramaX_Admin端原型.html》）
+4. ~~apps/admin~~ ✅ 已实现（Next.js 14 静态导出，无 wagmi——EIP-1193 直连 + viem SIWE）：钱包登录（owner 自举）→ 剧本管理（新建/提交/审核上架/下架，状态过滤）→ 场次创建（普通区 16:00 · 创新区周二四六 15:00&17:00 校验）→ 看板与参数（经济常量只读 + 档位表）→ 操作日志（audit_log）。构建 93.6 kB First Load；部署 `npm run deploy`（Pages 项目 dramax-admin）
 5. Turnstile 接入 + WAF 区域屏蔽规则下发；超额支付处理策略（待拍板）落 consumer；持仓转移语义（买家新 HOLDING / 重置周期）待拍板
 

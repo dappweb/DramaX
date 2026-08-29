@@ -1,0 +1,72 @@
+/* DramaX Admin —— 桌面端管理后台，浅色主题 */
+:root {
+  --primary: #4f46e5;
+  --primary-weak: #eef2ff;
+  --bg: #f5f6fa;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --up: #dc2626;
+  --warn: #b45309;
+  --ok: #16a34a;
+  --radius: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; font-size: 14px; }
+.num { font-variant-numeric: tabular-nums; }
+
+.layout { display: flex; min-height: 100dvh; }
+.sidebar { width: 200px; background: #171a2b; color: #c7cbe3; padding: 18px 12px; flex-shrink: 0; }
+.sidebar .logo { font-size: 17px; font-weight: 800; color: #fff; margin-bottom: 22px; padding: 0 10px; }
+.sidebar .logo em { color: #8b93ff; font-style: normal; }
+.nav-item { display: block; width: 100%; text-align: left; border: none; background: none; color: #c7cbe3; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+.nav-item.active { background: var(--primary); color: #fff; }
+.sidebar .foot { margin-top: 26px; padding: 0 12px; font-size: 11px; color: #6b7099; line-height: 1.7; }
+
+.main { flex: 1; padding: 22px 26px; max-width: 1080px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.topbar h1 { font-size: 19px; font-weight: 800; }
+.wallet-chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.wallet-chip.on { border-color: var(--primary); color: var(--primary); }
+
+.card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 2px rgb(0 0 0 / 4%); }
+.section-head { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; }
+.section-head h2 { font-size: 15.5px; font-weight: 800; }
+.desc { font-size: 12px; color: var(--muted); }
+.tag { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--primary-weak); color: var(--primary); white-space: nowrap; }
+.tag.gray { background: #f3f4f6; color: var(--muted); }
+.tag.green { background: #e4f0e9; color: var(--ok); }
+.tag.amber { background: #fef3c7; color: var(--warn); }
+.tag.red { background: #fee2e2; color: var(--up); }
+.readonly-chip { font-size: 10.5px; color: var(--muted); border: 1px dashed var(--line); border-radius: 999px; padding: 2px 8px; }
+
+.btn { border: none; border-radius: 8px; padding: 7px 13px; font-size: 12.5px; font-weight: 700; cursor: pointer; background: var(--primary-weak); color: var(--primary); }
+.btn.primary { background: var(--primary); color: #fff; }
+.btn.danger { background: #fee2e2; color: var(--up); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn + .btn { margin-left: 6px; }
+
+.table-wrap { background: var(--card); border-radius: var(--radius); overflow-x: auto; box-shadow: 0 1px 2px rgb(0 0 0 / 4%); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+th { text-align: left; padding: 10px 12px; color: var(--muted); font-size: 11.5px; font-weight: 700; border-bottom: 1px solid var(--line); background: #fafafa; white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field label { display: block; font-size: 11.5px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+.field input, .field select, .field textarea {
+  width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit; background: #fff;
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--primary-weak); border-color: var(--primary); }
+.actions { display: flex; gap: 8px; margin-top: 12px; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+.kpi { background: var(--card); border-radius: var(--radius); padding: 14px; box-shadow: 0 1px 2px rgb(0 0 0 / 4%); }
+.kpi .k { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.kpi .v { font-size: 20px; font-weight: 800; margin-top: 5px; }
+
+.center-tip { text-align: center; color: var(--muted); padding: 70px 20px; }
+.center-tip .btn { margin-top: 14px; }
+.err { color: var(--up); font-size: 12.5px; margin-top: 8px; }
+.mono { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; }
