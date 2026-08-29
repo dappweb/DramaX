@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAccount, useConnect, useSignMessage } from "wagmi";
 import { getToken, setToken } from "@/lib/api";
 import { loginWithWallet } from "@/lib/siwe";
+import { Turnstile, resetTurnstile } from "./Turnstile";
 import { HomeView } from "./HomeView";
 import { MarketView } from "./MarketView";
 import { HoldingsView } from "./HoldingsView";
@@ -22,6 +23,7 @@ export function Shell() {
   const [tab, setTab] = useState<Tab>("home");
   const [authError, setAuthError] = useState("");
   const [signingIn, setSigningIn] = useState(false);
+  const [tsToken, setTsToken] = useState("");
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { signMessageAsync } = useSignMessage();
@@ -33,8 +35,11 @@ export function Shell() {
     setSigningIn(true);
     setAuthError("");
     try {
-      await loginWithWallet(address, (msg) => signMessageAsync({ message: msg }));
+      await loginWithWallet(address, (msg) => signMessageAsync({ message: msg }), tsToken || undefined);
+      setTsToken("");
     } catch (e) {
+      setTsToken("");
+      resetTurnstile(); // 换新题，旧 token 已被服务端消耗
       setAuthError(e instanceof Error ? e.message : "登录失败");
     } finally {
       setSigningIn(false);
@@ -78,6 +83,7 @@ export function Shell() {
             <button className="btn primary block" onClick={signIn} disabled={signingIn}>
               {signingIn ? "等待钱包签名…" : "SIWE 钱包签名登录"}
             </button>
+            <Turnstile onToken={setTsToken} onExpire={() => setTsToken("")} />
             {authError && <p style={{ color: "var(--up)", marginTop: 10, fontSize: 12 }}>{authError}</p>}
           </div>
         )}

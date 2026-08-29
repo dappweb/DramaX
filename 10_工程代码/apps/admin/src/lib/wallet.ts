@@ -27,7 +27,10 @@ export async function connectWallet(): Promise<string> {
  * GET /admin/auth/nonce → createSiweMessage → personal_sign → POST /admin/auth/login
  * 服务端校验签名与 admins.wallet；ADMIN_OWNER_WALLET 配置的 owner 钱包首登自举建档（role=owner）。
  */
-export async function adminWalletLogin(address: string): Promise<{ token: string; role: string }> {
+export async function adminWalletLogin(
+  address: string,
+  turnstileToken?: string
+): Promise<{ token: string; role: string }> {
   const provider = getProvider();
   if (!provider) throw new Error("未检测到浏览器钱包插件");
 
@@ -48,7 +51,7 @@ export async function adminWalletLogin(address: string): Promise<{ token: string
 
   const res = await adminApi<{ token: string; role: string }>("/admin/auth/login", {
     method: "POST",
-    body: { message, nonce, signature },
+    body: { message, nonce, signature, turnstileToken },
   });
   setAdminToken(res.token);
   return res;

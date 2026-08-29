@@ -8,7 +8,7 @@ import { cors } from "hono/cors";
 import * as rules from "@dramax/shared";
 import { admin } from "./admin";
 import { trading, settleMatch } from "./trading";
-import { toCents, fmt, signJWT, verifyJWT, rpc, TRANSFER_TOPIC, padAddr, hexToCents, siweNonce, verifySiwe } from "./util";
+import { toCents, fmt, signJWT, verifyJWT, rpc, TRANSFER_TOPIC, padAddr, hexToCents, siweNonce, verifySiwe, verifyTurnstile, kvPut, kvGet, kvDel, kvSweep } from "./util";
 
 export interface Env {
   DB: D1Database;
@@ -20,6 +20,9 @@ export interface Env {
   ADMIN_OWNER_WALLET: string; // owner 钱包地址（SIWE 首登自举建档；小写比较）
   PLATFORM_ADDRESSES: string; // 逗号分隔的平台归集地址池
   ALLOWED_ORIGIN: string;
+  TURNSTILE_SECRET: string;   // wrangler secret put TURNSTILE_SECRET（未配置=开发环境跳过校验）
+  TURNSTILE_HOSTNAMES: string; // 逗号分隔前端域名白名单（m.dramax.ai,admin.dramax.ai）
+  BLOCKED_COUNTRIES: string;  // 逗号分隔 ISO 国家码，区域屏蔽（默认 CN；合规：不面向中国大陆提供服务）
 }
 
 export interface ChainEvent {
@@ -34,7 +37,23 @@ export interface ChainEvent {
 }
 
 const app = new Hono<{ Bindings: Env }>();
-app.use("*", (c, next) => cors({ origin: c.env.ALLOWED_ORIGIN })(c, next));
+
+// ─── 区域屏蔽（合规：不面向中国大陆提供服务）───
+// 代码级拦截基于 request.cf.country（Cloudflare 边缘注入，不可伪造）；
+// WAF 托管规则为账户级配置，两者叠加。451 = Unavailable For Legal Reasons。
+app.use("*", async (c, next) => {
+  const blocked = (c.env.BLOCKED_COUNTRIES ?? "CN").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+  const country = (c.req.raw.cf as { country?: string } | undefined)?.country?.toUpperCase();
+  if (country && blocked.includes(country)) {
+    return c.json({ error: "service unavailable in your region" }, 451);
+  }
+  await next();
+});
+
+app.use("*", (c, next) => {
+  const origins = c.env.ALLOWED_ORIGIN.split(",").map((s) => s.trim()).filter(Boolean);
+  return cors({ origin: origins.length > 1 ? origins : origins[0] ?? "*" })(c, next);
+});
 
 app.get("/health", (c) => c.json({ ok: true, chain: rules.CHAIN.ID, tiers: rules.TIERS.length, ts: Date.now() }));
 
@@ -48,22 +67,30 @@ async function requireUser(c: any): Promise<{ sub: string } | null> {
 // ─── 认证：SIWE 钱包签名登录 ───
 app.get("/auth/nonce", async (c) => {
   const nonce = siweNonce();
-  await c.env.INTENTS.put(`nonce:${nonce}`, "1", { expirationTtl: 300 });
+  await kvPut(c.env.DB, `nonce:${nonce}`, "1", 300);
+  await kvSweep(c.env.DB);
   return c.json({ nonce });
 });
 
 app.post("/auth/login", async (c) => {
-  const { address, message, nonce, signature } = await c.req.json<{
-    address: string; message: string; nonce: string; signature: string;
+  const { address, message, nonce, signature, turnstileToken } = await c.req.json<{
+    address: string; message: string; nonce: string; signature: string; turnstileToken?: string;
   }>();
+  // Turnstile 人机校验（action=user_login，先于 nonce 消耗，防脚本刷 nonce）
+  const ts = await verifyTurnstile({
+    secret: c.env.TURNSTILE_SECRET, token: turnstileToken,
+    expectedAction: "user_login", hostnames: c.env.TURNSTILE_HOSTNAMES,
+    remoteip: c.req.header("cf-connecting-ip"),
+  });
+  if (!ts.ok) return c.json({ error: ts.error }, 403);
   if (!message || !nonce || !signature) return c.json({ error: "missing fields" }, 400);
-  if (!(await c.env.INTENTS.get(`nonce:${nonce}`))) return c.json({ error: "nonce expired" }, 401);
+  if (!(await kvGet(c.env.DB, `nonce:${nonce}`))) return c.json({ error: "nonce expired" }, 401);
   const v = await verifySiwe({ allowedOrigin: c.env.ALLOWED_ORIGIN, message, nonce, signature });
   if (!v.ok) return c.json({ error: v.error }, 401);
   if (address && address.toLowerCase() !== v.address) return c.json({ error: "address mismatch" }, 401);
 
   // 单次有效：验签通过即焚毁 nonce（防重放）
-  await c.env.INTENTS.delete(`nonce:${nonce}`);
+  await kvDel(c.env.DB, `nonce:${nonce}`);
   const addr = v.address!;
   const id = crypto.randomUUID();
   await c.env.DB.prepare(
@@ -98,14 +125,13 @@ app.post("/payments/intent", async (c) => {
   }
   if (!salted) return c.json({ error: "salt collision, retry later" }, 503);
 
-  const pool = c.env.PLATFORM_ADDRESSES.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const pool = (c.env.PLATFORM_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (!pool.length) return c.json({ error: "platform addresses not configured" }, 503);
   const payee = pool[Math.floor(Math.random() * pool.length)];
   intentId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + rules.PAYMENT.INTENT_TTL_MIN * 60 * 1000).toISOString();
 
-  await c.env.INTENTS.put(`intent:${intentId}`, JSON.stringify({ orderId, orderType }), {
-    expirationTtl: rules.PAYMENT.INTENT_TTL_MIN * 60,
-  });
+  await kvPut(c.env.DB, `intent:${intentId}`, JSON.stringify({ orderId, orderType }), rules.PAYMENT.INTENT_TTL_MIN * 60);
   await c.env.DB.prepare(
     `INSERT INTO payment_intents (id, order_type, order_id, user_id, payee_addr, base_amount, salt_amount, expires_at) VALUES (?,?,?,?,?,?,?,?)`
   ).bind(intentId, orderType, orderId, user.sub, payee, baseAmount, salted.saltAmount.toFixed(2), expiresAt).run();
@@ -192,11 +218,11 @@ app.get("/holdings", async (c) => {
   return c.json({ holdings: enriched });
 });
 
+// ─── Admin 挂载（必须在 trading 之前：trading 的 use("*") 会拦截后续挂载的所有路径） ───
+app.route("/admin", admin);
+
 // ─── 交易链路（卖出/挂单/撮合/积分/团队/账本） ───
 app.route("/", trading);
-
-// ─── Admin 挂载 ───
-app.route("/admin", admin);
 
 // ─── Cron：Indexer 增量扫描 / 超时扫描 ───
 export default {
@@ -206,11 +232,17 @@ export default {
     ctx.waitUntil((async () => {
       const latestHex = await rpc<string>(env.BSC_RPC_URL, "eth_blockNumber", []);
       const latest = parseInt(latestHex, 16);
-      let last = Number((await env.INTENTS.get("scan:lastBlock")) ?? latest - rules.CHAIN.CONFIRMATIONS - 1);
+      let last = Number((await kvGet(env.DB, "scan:lastBlock")) ?? latest - rules.CHAIN.CONFIRMATIONS - 1);
       const from = last + 1;
       const to = Math.min(from + 499, latest - rules.CHAIN.CONFIRMATIONS); // 安全深度内增量
       if (from <= to) {
-        const platform = env.PLATFORM_ADDRESSES.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        const platform = (env.PLATFORM_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        if (!platform.length) {
+          // PLATFORM_ADDRESSES 未配置：跳过链上扫描，仅做超时/到期扫描（防止 getLogs 空 topics 匹配全量 USDT 转账）
+          await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();
+          await kvPut(env.DB, "scan:lastBlock", String(latest - rules.CHAIN.CONFIRMATIONS));
+          return;
+        }
         const logs: any[] = await rpc(env.BSC_RPC_URL, "eth_getLogs", [
           {
             address: rules.CHAIN.USDT,
@@ -240,7 +272,7 @@ export default {
         }
         last = to;
       }
-      await env.INTENTS.put("scan:lastBlock", String(last));
+      await kvPut(env.DB, "scan:lastBlock", String(last));
 
       // 支付广播超时（15 分钟）：PAYING → EXPIRED（原 60min txid 模式已废除）
       await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();

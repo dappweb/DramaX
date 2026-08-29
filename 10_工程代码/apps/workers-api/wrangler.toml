@@ -7,12 +7,12 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "dramax"
-database_id = "<TODO: wrangler d1 create dramax 后填入>"
+database_id = "2ad552ed-3ed4-44be-b0cd-fecee12fc5c6"
 
 # ─── KV：支付意图（TTL 30min）/ JWT 黑名单 ───
 [[kv_namespaces]]
 binding = "INTENTS"
-id = "<TODO: wrangler kv namespace create INTENTS 后填入>"
+id = "649e13b13e584a94b072b5f5b976878e"
 
 # ─── Queues：链上事件削峰 → 入账引擎 ───
 [[queues.producers]]
@@ -25,20 +25,18 @@ max_batch_size = 10
 max_retries = 5
 dead_letter_queue = "dramax-chain-events-dlq"
 
-# ─── Cron Triggers（Workers 最小粒度 1 分钟） ───
-# Indexer：每分钟轮询 BSC getLogs（15 确认≈45s，1 分钟粒度满足时效）
-# 到期/超时扫描：每分钟；每日增长结算：00:05；三方对账：01:30
-[triggers]
-crons = [
-  "* * * * *",      # indexer 扫描 + 支付广播超时扫描 + 到期扫描
-  "5 0 * * *",      # 每日增长结算（复利快照）
-  "30 1 * * *",     # 每日三方对账
-]
+# ─── Cron Trigger（暂未启用：账号免费版 cron 配额 19/5 超限，新增全被拒） ───
+# 恢复方式：解开注释部署，或升级 Workers Paid（$5/月）
+# indexer 备选：Mac launchd 定时 curl 触发内部端点（kolmarket runner 同模式）
+# [triggers]
+# crons = ["* * * * *"]
 
 [vars]
 ENV = "production"
-ALLOWED_ORIGIN = "https://m.dramax.ai,https://admin.dramax.ai"  # 逗号分隔多域（移动端 / Admin 端 Pages 项目）
+ALLOWED_ORIGIN = "https://m.dramax.ai,https://admin.dramax.ai,https://dramax-mobile.pages.dev,https://dramax-admin.pages.dev"  # 逗号分隔多域（生产域 + 当前 pages.dev 临时域；dramax.ai 接入 CF 后可去掉 pages.dev）
 ADMIN_OWNER_WALLET = ""  # owner 钱包地址（0x...，小写）；Admin 钱包登录首登自举建档
+TURNSTILE_HOSTNAMES = "m.dramax.ai,admin.dramax.ai,dramax-mobile.pages.dev,dramax-admin.pages.dev,localhost,127.0.0.1"  # siteverify hostname 白名单
+BLOCKED_COUNTRIES = "CN"  # 区域屏蔽（request.cf.country 边缘判定，返回 451）
 
 # ─── Secrets（wrangler secret put 注入，禁止入库） ───
-# JWT_SECRET / BSC_RPC_URL / ADMIN_INITIAL_PASSWORD
+# JWT_SECRET / BSC_RPC_URL / ADMIN_INITIAL_PASSWORD / TURNSTILE_SECRET

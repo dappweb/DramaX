@@ -6,6 +6,7 @@ import { DashboardView } from "./DashboardView";
 import { ScriptsView } from "./ScriptsView";
 import { SessionsView } from "./SessionsView";
 import { AuditView } from "./AuditView";
+import { Turnstile, resetTurnstile } from "./Turnstile";
 
 type Page = "scripts" | "sessions" | "dashboard" | "audit";
 
@@ -20,6 +21,7 @@ export function AdminShell() {
   const [page, setPage] = useState<Page>("scripts");
   const [loginErr, setLoginErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [tsToken, setTsToken] = useState("");
   const [tick, setTick] = useState(0); // 触发重渲染读取 token
 
   async function login() {
@@ -29,9 +31,12 @@ export function AdminShell() {
       // 动态引入，避免 SSR 阶段触碰 window
       const { connectWallet, adminWalletLogin } = await import("@/lib/wallet");
       const address = await connectWallet();
-      await adminWalletLogin(address);
+      await adminWalletLogin(address, tsToken || undefined);
+      setTsToken("");
       setTick((t) => t + 1);
     } catch (e) {
+      setTsToken("");
+      resetTurnstile(); // 换新题，旧 token 已被服务端消耗
       setLoginErr(e instanceof Error ? e.message : "登录失败");
     } finally {
       setBusy(false);
@@ -54,6 +59,7 @@ export function AdminShell() {
         <button className="btn primary" style={{ padding: "10px 26px", fontSize: 14 }} onClick={login} disabled={busy}>
           {busy ? "等待钱包签名…" : "连接钱包并登录"}
         </button>
+        <Turnstile onToken={setTsToken} onExpire={() => setTsToken("")} />
         {loginErr && <p className="err">{loginErr}</p>}
       </div>
     );

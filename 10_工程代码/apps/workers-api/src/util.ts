@@ -12,6 +12,36 @@ export function fmt(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
+// ─── KV 语义（D1 实现）：账号免费版 KV 写配额被共享耗尽，nonce/意图/游标全部落 D1 kv 表 ───
+interface KvStmt {
+  run: () => Promise<unknown>;
+  first: <T = unknown>(col?: string) => Promise<T | null>;
+}
+type KvDB = { prepare: (sql: string) => KvStmt & { bind: (...v: unknown[]) => KvStmt } };
+
+export async function kvPut(db: KvDB, key: string, value: string, ttlSeconds?: number): Promise<void> {
+  const exp = ttlSeconds ? Math.floor(Date.now() / 1000) + ttlSeconds : null;
+  await db.prepare(`INSERT INTO kv (key, value, expires_at) VALUES (?,?,?)
+                   ON CONFLICT(key) DO UPDATE SET value=excluded.value, expires_at=excluded.expires_at`)
+    .bind(key, value, exp).run();
+}
+
+export async function kvGet(db: KvDB, key: string): Promise<string | null> {
+  const row = await db.prepare(`SELECT value FROM kv WHERE key=? AND (expires_at IS NULL OR expires_at > unixepoch())`)
+    .bind(key).first<{ value: string }>();
+  return row?.value ?? null;
+}
+
+export async function kvDel(db: KvDB, key: string): Promise<void> {
+  await db.prepare(`DELETE FROM kv WHERE key=?`).bind(key).run();
+}
+
+/** 顺手清理过期行（每次 put 时按 1/10 概率触发，避免专用 cron） */
+export async function kvSweep(db: KvDB): Promise<void> {
+  if (Math.random() >= 0.1) return;
+  await db.prepare(`DELETE FROM kv WHERE expires_at IS NOT NULL AND expires_at <= unixepoch()`).run();
+}
+
 // ─── SIWE（EIP-4361）：nonce 生成 + 验签（用户端与 Admin 端共用） ───
 // 注意：viem SIWE 正则要求 nonce 仅字母数字（randomUUID 带连字符会解析失败），故用 hex。
 export function siweNonce(): string {
@@ -51,6 +81,52 @@ export async function verifySiwe(opts: {
   const recovered = await recoverMessageAddress({ message, signature: signature as `0x${string}` });
   if (recovered.toLowerCase() !== addr) return { ok: false, error: "signature verification failed" };
   return { ok: true, address: addr };
+}
+
+// ─── Turnstile 服务端校验（canonical siteverify，fail closed） ───
+// 浏览器 → Workers → siteverify；要求 success=true + action 匹配 + hostname 在白名单。
+// TURNSTILE_SECRET 未配置时视为开发环境跳过（上线前必须注入 secret）。
+export interface TurnstileVerifyResult {
+  ok: boolean;
+  error?: string;
+}
+
+export async function verifyTurnstile(opts: {
+  secret: string;
+  token: unknown; // cf-turnstile-response（前端 JSON 字段透传）
+  expectedAction: string;
+  hostnames: string; // TURNSTILE_HOSTNAMES，逗号分隔前端域名白名单
+  remoteip?: string;
+}): Promise<TurnstileVerifyResult> {
+  const { secret, token, expectedAction, hostnames, remoteip } = opts;
+  if (!secret) return { ok: true }; // dev：未配置 secret 时跳过（仅限开发环境）
+  if (typeof token !== "string" || token.length === 0 || token.length > 2048) {
+    return { ok: false, error: "turnstile token missing" };
+  }
+  const expectedHostnames = hostnames.split(",").map((s) => s.trim()).filter(Boolean);
+  if (expectedHostnames.length === 0) return { ok: false, error: "turnstile hostnames not configured" };
+
+  let result: { success?: boolean; action?: string; hostname?: string };
+  try {
+    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      signal: AbortSignal.timeout(10_000),
+      body: new URLSearchParams({
+        secret,
+        response: token,
+        ...(remoteip ? { remoteip } : {}),
+      }),
+    });
+    if (!res.ok) return { ok: false, error: `siteverify ${res.status}` };
+    result = (await res.json()) as typeof result;
+  } catch {
+    return { ok: false, error: "siteverify unreachable" }; // fail closed
+  }
+  if (!result.success || result.action !== expectedAction || !expectedHostnames.includes(result.hostname ?? "")) {
+    return { ok: false, error: "turnstile verification failed" };
+  }
+  return { ok: true };
 }
 
 // ─── JWT（HS256，零依赖） ───

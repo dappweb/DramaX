@@ -62,13 +62,27 @@ node_modules/.bin/tsc --noEmit --strict --target es2022 --module esnext --module
 ⚠️ SIWE 关键坑（已修）：EIP-4361 nonce 仅允许字母数字（viem 正则 `[a-zA-Z0-9]+`），
 **不要用 randomUUID**（连字符导致 parseSiweMessage 丢字段）；消息字段必须是 `Chain ID:`（大写 D）。
 
-## 部署
+## 部署（✅ 2026-08-29 已上线 Cloudflare）
 
-根目录 `pnpm content:deploy`（test → lint → build → wrangler deploy → verify-live）。
-**严禁直接 push。** 首次部署前：`wrangler d1 create dramax`、`wrangler kv namespace create INTENTS`、
-`wrangler queues create dramax-chain-events`（+dlq），把 id 填入 `wrangler.toml` TODO 处；
-secrets 用 `wrangler secret put` 注入（JWT_SECRET / BSC_RPC_URL / ADMIN_INITIAL_PASSWORD）；
-`PLATFORM_ADDRESSES` 写入平台归集地址池（vars）；`ADMIN_OWNER_WALLET` 填 owner 钱包地址（Admin 钱包登录自举）。
+**线上地址**：
+- API：https://dramax-api.dappweb.workers.dev（/health 200，/auth/nonce + /admin/auth/nonce 均验证通过）
+- 移动端：https://dramax-mobile.pages.dev（Pages 项目 dramax-mobile）
+- Admin：https://dramax-admin.pages.dev（Pages 项目 dramax-admin）
+
+**已创建资源**：D1 `dramax`（id 2ad552ed…，17 表 + kv 表）、KV `INTENTS`、Queues `dramax-chain-events`(+dlq)、secrets JWT_SECRET / BSC_RPC_URL（公共端点 bsc-dataseed）/ ADMIN_INITIAL_PASSWORD。
+
+**KV → D1 迁移（0002_kv_to_d1.sql）**：账号免费版 KV 写配额（1,000/天，账号级共享）被其他项目 cron 打满，
+nonce put 失败导致登录 500 → nonce/支付意图/扫描游标全部改落 D1 `kv` 表（kvPut/kvGet/kvDel/kvSweep，util.ts）。
+构建注入：`NEXT_PUBLIC_API_BASE=https://dramax-api.dappweb.workers.dev npm run build`（Pages 部署 out/）。
+
+**已知限制**：
+1. **Cron 未启用**：账号免费版 cron 配额 19/5 超限（存量 grandfathered，任何新增/修改被拒）。indexer 暂不自动运行——
+   恢复路径：升级 Workers Paid（$5/月）后解开 wrangler.toml [triggers] 注释重部署；或 Mac launchd 定时触发。
+2. **自定义域未绑**：dramax.ai 域名未接入此 CF 账号（现有 zone：dappweb.ai 等 9 个）。临时用 pages.dev 域，
+   ALLOWED_ORIGIN/TURNSTILE_HOSTNAMES 已包含 pages.dev；域名接入后加 CNAME 指向 Pages 项目即可。
+3. **BLOCKED_COUNTRIES = "CN"**：大陆访问返回 451（合规设计）；自测需挂代理。
+4. PLATFORM_ADDRESSES（平台归集地址池）未配置——支付意图端点会 503，配置后即通。
+   ADMIN_OWNER_WALLET 待填 owner 钱包地址（vars）。
 
 ## 下一迭代（按优先级）
 
@@ -78,5 +92,5 @@ secrets 用 `wrangler secret put` 注入（JWT_SECRET / BSC_RPC_URL / ADMIN_INIT
 2. ~~卖出/挂单/撮合/积分/团队路由~~ ✅ 已实现（src/trading.ts，tsc --strict 0 错误）：sell-intent 冻结占用 / topup 缺口生成支付意图 / 挂单·撤单（CAS 解冻）/ 撮合 15min 窗口 / settleMatch 瀑布结算+10 代返佣记账 / credits·team·ledger 只读
 3. ~~apps/mobile~~ ✅ 已实现（Next.js 14 静态导出 + wagmi/viem）：钱包连接 → SIWE 登录 → 场次抢购 → 持仓全状态机（卖出意向/补足占用/挂单）→ 市场撮合 → PaymentSheet USDT 直付（盐值金额 + 轮询 15 确认入账）。构建：`cd apps/mobile && npm install && npm run build`，产物 out/ 部署 Pages（`npm run deploy`）；`NEXT_PUBLIC_API_BASE` 指向 Workers API
 4. ~~apps/admin~~ ✅ 已实现（Next.js 14 静态导出，无 wagmi——EIP-1193 直连 + viem SIWE）：钱包登录（owner 自举）→ 剧本管理（新建/提交/审核上架/下架，状态过滤）→ 场次创建（普通区 16:00 · 创新区周二四六 15:00&17:00 校验）→ 看板与参数（经济常量只读 + 档位表）→ 操作日志（audit_log）。构建 93.6 kB First Load；部署 `npm run deploy`（Pages 项目 dramax-admin）
-5. Turnstile 接入 + WAF 区域屏蔽规则下发；超额支付处理策略（待拍板）落 consumer；持仓转移语义（买家新 HOLDING / 重置周期）待拍板
+5. ~~Turnstile 代码接线 + 区域屏蔽~~ ✅ 已实现（服务端 siteverify fail-closed + mobile/admin Turnstile 组件随登录提交 token + 失败换新题 + `request.cf.country` 451 中间件；sitekey/secret 未配置时 dev 自动跳过）；**widget 创建待用户创建 `Account.Turnstile:Edit` API token**；超额支付处理策略（待拍板）落 consumer；持仓转移语义（买家新 HOLDING / 重置周期）待拍板
 

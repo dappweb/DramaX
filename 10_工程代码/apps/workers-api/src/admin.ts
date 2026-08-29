@@ -4,7 +4,7 @@
 import { Hono } from "hono";
 import bcrypt from "bcryptjs";
 import type { Env } from "./index";
-import { signJWT, toCents, fmt, siweNonce, verifySiwe } from "./util";
+import { signJWT, toCents, fmt, siweNonce, verifySiwe, verifyTurnstile, kvPut, kvGet, kvDel } from "./util";
 import { tierFor, TIERS } from "@dramax/shared";
 
 export const admin = new Hono<{ Bindings: Env }>();
@@ -25,19 +25,28 @@ async function audit(c: { env: Env }, adminId: string, action: string, entity: s
 // 路由必须注册在下方鉴权中间件之前（Hono 按注册顺序匹配）
 route.get("/auth/nonce", async (c) => {
   const nonce = siweNonce();
-  await c.env.INTENTS.put(`admin-nonce:${nonce}`, "1", { expirationTtl: 300 });
+  await kvPut(c.env.DB, `admin-nonce:${nonce}`, "1", 300);
   return c.json({ nonce });
 });
 
 route.post("/auth/login", async (c) => {
-  const { message, nonce, signature } = await c.req.json<{ message: string; nonce: string; signature: string }>();
+  const { message, nonce, signature, turnstileToken } = await c.req.json<{
+    message: string; nonce: string; signature: string; turnstileToken?: string;
+  }>();
+  // Turnstile 人机校验（action=admin_login，先于 nonce 消耗）
+  const ts = await verifyTurnstile({
+    secret: c.env.TURNSTILE_SECRET, token: turnstileToken,
+    expectedAction: "admin_login", hostnames: c.env.TURNSTILE_HOSTNAMES,
+    remoteip: c.req.header("cf-connecting-ip"),
+  });
+  if (!ts.ok) return c.json({ error: ts.error }, 403);
   if (!message || !nonce || !signature) return c.json({ error: "missing fields" }, 400);
-  if (!(await c.env.INTENTS.get(`admin-nonce:${nonce}`))) return c.json({ error: "nonce expired" }, 401);
+  if (!(await kvGet(c.env.DB, `admin-nonce:${nonce}`))) return c.json({ error: "nonce expired" }, 401);
 
   const v = await verifySiwe({ allowedOrigin: c.env.ALLOWED_ORIGIN, message, nonce, signature });
   if (!v.ok) return c.json({ error: v.error }, 401);
   // 单次有效：验签通过即焚毁 nonce（防重放）
-  await c.env.INTENTS.delete(`admin-nonce:${nonce}`);
+  await kvDel(c.env.DB, `admin-nonce:${nonce}`);
   const wallet = v.address!;
 
   let row = await c.env.DB.prepare(`SELECT id, account, role, failed_attempts, locked_until FROM admins WHERE wallet=?`).bind(wallet).first<any>();

@@ -12,7 +12,8 @@ import { api, setToken } from "./api";
  */
 export async function loginWithWallet(
   address: `0x${string}`,
-  signMessage: (msg: string) => Promise<string>
+  signMessage: (msg: string) => Promise<string>,
+  turnstileToken?: string
 ): Promise<{ token: string; userId: string }> {
   const { nonce } = await api<{ nonce: string }>("/auth/nonce");
   const message = createSiweMessage({
@@ -27,7 +28,7 @@ export async function loginWithWallet(
   const signature = await signMessage(message);
   const res = await api<{ token: string; userId: string }>("/auth/login", {
     method: "POST",
-    body: { address, message, nonce, signature },
+    body: { address, message, nonce, signature, turnstileToken },
   });
   setToken(res.token);
   return res;
