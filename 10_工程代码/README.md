@@ -104,6 +104,13 @@ nonce put 失败导致登录 500 → nonce/支付意图/扫描游标全部改落
       超时释放/回滚从未生效（现统一绑 ISO 参数；同时把回滚移到链上扫描之前，RPC 故障不阻塞）；
    ④ EXPIRED 只置 matches 不回滚 listings/holdings（卡死 MATCHED，现三条 SQL 原子恢复）。
    payment_intents 过期检查同步修（原 expires_at > datetime('now') 恒真，过期盐仍可匹配入账——安全隐患）。
+7. **Admin 管理链路 E2E 已通过 + e2e 定时化（✅ 2026-08-30）**：business-e2e.mjs 追加 Admin 段（密码登录 401/200 →
+   dashboard → 剧本 DRAFT→submit→LISTED（跳步 409、无版权哈希 400 负向）→ 建场次（时间规则 400 负向、fee=75.00）→
+   用户端可见新场次 → audit-logs 断言）。密码经 repo secret `DRAMAX_E2E_ADMIN_PASS` 注入（testnet D1 直插 e2e-admin 行）。
+   run 33295009580：SIWE 11 + Business/Admin 17 项全 PASS。e2e.yml 现每 2 小时 schedule 自动跑（cron 17 */2 * * *），
+   步骤含「先 POST /internal/cron 释放过期撮合」；连续手动 dispatch 撞 15min 撮合窗口时自动 SKIP 撮合段。
+   顺带修 2 个 bug：⑤ admin 建场次 fee 又见元/分错配（fmt(元)→"0.75"，改 toFixed(2)）；
+   ⑥ /admin/audit-logs 返回 D1Result 而非数组。
 
 ## BSC Testnet 演示环境（✅ 2026-08-29 已部署，chainId 97）
 
