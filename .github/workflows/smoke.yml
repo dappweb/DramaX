@@ -28,10 +28,10 @@ jobs:
           echo "$S" | head -c 400; echo
           echo "$S" | jq -e '(.sessions | length) >= 5' >/dev/null && echo "PASS sessions" || { echo "FAIL sessions"; exit 1; }
 
-          echo "== /listings (expect 2 seeded) =="
-          L=$(curl -sS -m 30 $BASE/listings)
-          echo "$L" | head -c 400; echo
-          echo "$L" | jq -e '(.listings | length) >= 2' >/dev/null && echo "PASS listings" || { echo "FAIL listings"; exit 1; }
+          echo "== /listings (expect 401: trading 路由全部要求登录，验证鉴权护栏) =="
+          CODE=$(curl -sS -m 30 -o /tmp/l.json -w "%{http_code}" $BASE/listings)
+          cat /tmp/l.json; echo
+          [ "$CODE" = "401" ] && echo "PASS listings-guard" || { echo "FAIL listings-guard got $CODE"; exit 1; }
 
           echo "== /auth/nonce =="
           N=$(curl -sS -m 30 -X POST $BASE/auth/nonce -H "Content-Type: application/json" \
