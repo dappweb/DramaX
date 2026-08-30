@@ -143,16 +143,22 @@ route.post("/listings/:id/match", async (c) => {
   if (!l) return c.json({ error: "not found or not LISTED" }, 409);
   if (l.seller_id === userId) return c.json({ error: "cannot match own listing" }, 400);
 
+  // 修复(2026-08-30)：matches.payee_addr/salt_amount 为 NOT NULL，原 INSERT 漏列必 500。
+  // 撮合时预生成收款地址与盐值（saltFor 纯函数，payments/intent 对同一 matchId 复用同盐）。
+  const pool = (c.env.PLATFORM_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (!pool.length) return c.json({ error: "platform addresses not configured" }, 503);
   const matchId = crypto.randomUUID();
+  const payee = pool[Math.floor(Math.random() * pool.length)];
+  const salted = rules.PAYMENT.saltFor(Number(l.list_price), matchId);
   const deadline = new Date(Date.now() + rules.PAYMENT.BROADCAST_WINDOW_MIN * 60 * 1000).toISOString();
 
   await c.env.DB.batch([
     c.env.DB.prepare(`UPDATE listings SET status='MATCHED', buyer_id=? WHERE id=? AND status='LISTED'`).bind(userId, l.id),
     c.env.DB.prepare(`UPDATE holdings SET state='MATCHED', state_version=state_version+1 WHERE id=? AND state='LISTED'`).bind(l.holding_id),
-    c.env.DB.prepare(`INSERT INTO matches (id, listing_id, seller_id, buyer_id, price, broadcast_deadline, status) VALUES (?,?,?,?,?,?,'PAYING')`)
-      .bind(matchId, l.id, l.seller_id, userId, l.list_price, deadline),
+    c.env.DB.prepare(`INSERT INTO matches (id, listing_id, seller_id, buyer_id, price, payee_addr, salt_amount, broadcast_deadline, status) VALUES (?,?,?,?,?,?,?,?, 'PAYING')`)
+      .bind(matchId, l.id, l.seller_id, userId, l.list_price, payee, salted.saltAmount.toFixed(2), deadline),
   ]);
-  return c.json({ matchId, price: l.list_price, broadcastWindowMin: rules.PAYMENT.BROADCAST_WINDOW_MIN, deadline }, 201);
+  return c.json({ matchId, price: l.list_price, payee, saltAmount: salted.saltAmount.toFixed(2), broadcastWindowMin: rules.PAYMENT.BROADCAST_WINDOW_MIN, deadline }, 201);
 });
 
 route.get("/matches/:id", async (c) => {

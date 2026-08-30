@@ -143,7 +143,12 @@ app.post("/payments/intent", async (c) => {
 
   const pool = (c.env.PLATFORM_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
   if (!pool.length) return c.json({ error: "platform addresses not configured" }, 503);
-  const payee = pool[Math.floor(Math.random() * pool.length)];
+  let payee = pool[Math.floor(Math.random() * pool.length)];
+  // P2P：复用撮合时锁定的收款地址（match 与 intent 的盐值同由 saltFor(orderId) 纯函数保证一致）
+  if (orderType === "P2P") {
+    const mm = await c.env.DB.prepare(`SELECT payee_addr FROM matches WHERE id=?`).bind(orderId).first<{ payee_addr: string }>();
+    if (mm?.payee_addr) payee = mm.payee_addr;
+  }
   intentId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + rules.PAYMENT.INTENT_TTL_MIN * 60 * 1000).toISOString();
 
@@ -188,13 +193,16 @@ app.post("/sessions/:id/reserve", async (c) => {
   const amtC = toCents(amount);
   const fee = rules.feeFor(amtC / 100);
   if (!fee || fee.pending) return c.json({ error: "该档位待确认，暂不可预约" }, 400);
-  if (toCents(sess.fee) !== fee.fee) return c.json({ error: "fee mismatch" }, 400);
+  // 修复(2026-08-30)：feeFor 返回元（如 75），DB fee 列也存元字符串（'75'）——
+  // 原代码 toCents(sess.fee)=7500 分与 fee.fee=75 元直接比较，永远 fee mismatch；totalC 又把元当分扣。统一转分。
+  const feeC = toCents(String(fee.fee)); // 档位手续费（分）
+  if (toCents(sess.fee) !== feeC) return c.json({ error: "fee mismatch" }, 400);
 
   const userRow = await c.env.DB.prepare(`SELECT drama_balance FROM users WHERE id=?`).bind(user.sub).first<{ drama_balance: string }>();
   if (!userRow) return c.json({ error: "user not found" }, 404);
 
   const balC = toCents(userRow.drama_balance);
-  const totalC = amtC + (fee.fee ?? 0);
+  const totalC = amtC + feeC;
   if (balC < totalC) return c.json({ error: "balance insufficient", need: fmt(totalC), have: userRow.drama_balance }, 402);
 
   const now = fmt(balC - amtC);          // 扣本金后
@@ -214,7 +222,7 @@ app.post("/sessions/:id/reserve", async (c) => {
     c.env.DB.prepare(`INSERT INTO drama_ledger (user_id, type, amount, balance_after, frozen_after, ref_type, ref_id) VALUES (?,?,?,?,?,?,?)`)
       .bind(user.sub, "RESERVE_PRINCIPAL", fmt(-amtC), now, "0", "holding", holdingId),
     c.env.DB.prepare(`INSERT INTO drama_ledger (user_id, type, amount, balance_after, frozen_after, ref_type, ref_id) VALUES (?,?,?,?,?,?,?)`)
-      .bind(user.sub, "RESERVE_FEE", fmt(-(fee.fee ?? 0)), after, "0", "reservation", reservationId),
+      .bind(user.sub, "RESERVE_FEE", fmt(-feeC), after, "0", "reservation", reservationId),
   ]);
 
   return c.json({ holdingId, reservationId, bookValue: fmt(rules.GROWTH.bookValue(amtC / 100, zone, 0)), zone }, 201);
@@ -253,6 +261,23 @@ app.route("/", trading);
 
 // ─── Cron：Indexer 增量扫描 / 超时扫描 ───
 // cron 逻辑抽为独立函数：scheduled（Workers Cron）与 POST /internal/cron（launchd curl 触发）共用
+
+// 支付广播超时（15 分钟）：PAYING → EXPIRED。
+// 修复(2026-08-30)：原先只置 matches，listings/holdings 会永久卡在 MATCHED；
+// 现按「先回滚挂单/持仓、后置 EXPIRED」顺序原子恢复（status/state 守卫保证幂等）。
+async function expireStaleMatches(env: Env): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE listings SET status='LISTED', buyer_id=NULL WHERE status='MATCHED' AND id IN
+     (SELECT listing_id FROM matches WHERE status='PAYING' AND broadcast_deadline < datetime('now'))`
+  ).run();
+  await env.DB.prepare(
+    `UPDATE holdings SET state='LISTED', state_version=state_version+1 WHERE state='MATCHED' AND id IN
+     (SELECT l.holding_id FROM listings l JOIN matches m ON m.listing_id=l.id
+      WHERE m.status='PAYING' AND m.broadcast_deadline < datetime('now'))`
+  ).run();
+  await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();
+}
+
 async function runCronOnce(env: Env): Promise<void> {
   const latestHex = await rpc<string>(env.BSC_RPC_URL, "eth_blockNumber", []);
   const latest = parseInt(latestHex, 16);
@@ -263,7 +288,7 @@ async function runCronOnce(env: Env): Promise<void> {
     const platform = (env.PLATFORM_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
     if (!platform.length) {
       // PLATFORM_ADDRESSES 未配置：跳过链上扫描，仅做超时/到期扫描（防止 getLogs 空 topics 匹配全量 USDT 转账）
-      await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();
+      await expireStaleMatches(env);
       await kvPut(env.DB, "scan:lastBlock", String(latest - chainOf(env).confirmations));
       return;
     }
@@ -298,8 +323,8 @@ async function runCronOnce(env: Env): Promise<void> {
   }
   await kvPut(env.DB, "scan:lastBlock", String(last));
 
-  // 支付广播超时（15 分钟）：PAYING → EXPIRED（原 60min txid 模式已废除）
-  await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();
+  // 支付广播超时（15 分钟）+ 挂单/持仓回滚（原 60min txid 模式已废除）
+  await expireStaleMatches(env);
   // 到期扫描：HOLDING 满 7 天 → MATURED
   await env.DB.prepare(
     `UPDATE holdings SET state='MATURED', matured_at=datetime('now') WHERE state='HOLDING' AND created_at <= datetime('now', '-7 days')`

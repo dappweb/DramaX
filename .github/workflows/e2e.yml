@@ -1,0 +1,31 @@
+# DramaX E2E：SIWE 认证 + 全业务链路（GitHub Actions runner 直连 workers.dev，无墙）
+# 手动触发：gh workflow run e2e.yml（或 API workflow_dispatch）
+name: dramax-e2e
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install deps (viem)
+        working-directory: 10_工程代码/scripts
+        run: npm i --no-save viem@^2
+
+      - name: SIWE auth E2E
+        working-directory: 10_工程代码/scripts
+        run: node siwe-e2e.mjs
+
+      - name: Business E2E
+        working-directory: 10_工程代码/scripts
+        run: node business-e2e.mjs
