@@ -212,5 +212,6 @@ route.get("/dashboard", async (c) => {
 
 route.get("/audit-logs", async (c) => {
   const limit = Math.min(Number(c.req.query("limit") ?? 50), 200);
-  return c.json({ logs: await c.env.DB.prepare(`SELECT * FROM audit_logs ORDER BY id DESC LIMIT ?`).bind(limit).all() });
+  const rows = await c.env.DB.prepare(`SELECT * FROM audit_logs ORDER BY id DESC LIMIT ?`).bind(limit).all();
+  return c.json({ logs: rows.results }); // 修复(2026-08-30)：原先直接返回 D1Result{results,meta}
 });

@@ -174,9 +174,10 @@ if (ADMIN_PASS) {
   const pub = await j("/sessions");
   assert((pub.body.sessions ?? []).some((s) => s.id === ssn.body.id), "new session visible on public /sessions");
 
-  // 6. 审计日志有记录
+  // 6. 审计日志有记录（兼容 {logs:[...]} 与旧 {logs:{results:[...]}} 两种返回）
   const logs = await j("/admin/audit-logs?limit=50", { headers: aAuth });
-  const kinds = (logs.body.logs ?? []).map((x) => x.action ?? "");
+  const lgRows = Array.isArray(logs.body.logs) ? logs.body.logs : (logs.body.logs?.results ?? []);
+  const kinds = lgRows.map((x) => x.action ?? "");
   assert(kinds.includes("script.create") && kinds.includes("session.create"), "audit-logs recorded", kinds.slice(0, 5).join(","));
 
   console.log("=== ADMIN CHAIN PASS ===");
