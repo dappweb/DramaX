@@ -59,3 +59,27 @@ jobs:
           code_a=$(curl -sS -m 30 -o /tmp/admin.html -w "%{http_code}" https://dramax-admin.pages.dev/)
           grep -q "DramaX" /tmp/admin.html
           echo "admin: $code_a + DramaX OK"
+
+  # 充值入账链路 E2E：真实链上转账（MockUSDT）。前置：repo variable DRAMAX_MOCK_USDT 已设（MockUSDT 合约地址）
+  deposit-e2e:
+    if: ${{ vars.DRAMAX_MOCK_USDT != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install deps (viem)
+        working-directory: 10_工程代码/scripts
+        run: npm i --no-save viem@^2
+
+      - name: Deposit chain E2E
+        working-directory: 10_工程代码/scripts
+        env:
+          E2E_DEPOSIT_KEY: ${{ secrets.DRAMAX_E2E_DEPOSIT_KEY }}
+          INTERNAL_TOKEN: ${{ secrets.DRAMAX_CRON_TOKEN }}
+          MOCK_USDT: ${{ vars.DRAMAX_MOCK_USDT }}
+        run: node deposit-e2e.mjs
