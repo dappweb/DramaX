@@ -89,11 +89,11 @@ const it = await j("/payments/intent", {
   method: "POST", headers: auth,
   body: JSON.stringify({ orderType: "P2P", orderId: m.body.matchId, baseAmount: m.body.price }),
 });
-assert(it.status === 200 && it.body.payee_addr && it.body.salt_amount, "POST /payments/intent", `payee=${it.body.payee_addr} salt=${it.body.salt_amount}`);
+assert(it.status === 201 && it.body.payee && it.body.saltAmount, "POST /payments/intent", `payee=${it.body.payee} salt=${it.body.saltAmount} err=${it.body.error ?? "-"}`);
 
 // 7. 意图状态查询
-const st = await j(`/payments/${it.body.id ?? m.body.matchId}/status`, { headers: auth });
-assert(st.status === 200 || st.status === 404, "GET /payments/:id/status reachable", `status=${st.status}`);
+const st = await j(`/payments/${it.body.intentId}/status`, { headers: auth });
+assert(st.status === 200 && st.body.status === "PENDING", "GET /payments/:id/status PENDING", JSON.stringify(st.body));
 
 // 8. 撮合后挂单从转让市场消失
 const after = await j("/listings", { headers: auth });
