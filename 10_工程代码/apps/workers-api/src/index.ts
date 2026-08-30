@@ -135,8 +135,8 @@ app.post("/payments/intent", async (c) => {
   for (let attempt = 0; attempt < 5; attempt++) {
     const s = rules.PAYMENT.saltFor(Number(baseAmount), attempt === 0 ? orderId : `${orderId}#${attempt}`);
     const clash = await c.env.DB.prepare(
-      `SELECT id FROM payment_intents WHERE salt_amount=? AND status='PENDING' AND expires_at > datetime('now')`
-    ).bind(s.saltAmount.toFixed(2)).first();
+      `SELECT id FROM payment_intents WHERE salt_amount=? AND status='PENDING' AND expires_at > ?`
+    ).bind(s.saltAmount.toFixed(2), new Date().toISOString()).first();
     if (!clash) { salted = s; break; }
   }
   if (!salted) return c.json({ error: "salt collision, retry later" }, 503);
@@ -263,19 +263,21 @@ app.route("/", trading);
 // cron 逻辑抽为独立函数：scheduled（Workers Cron）与 POST /internal/cron（launchd curl 触发）共用
 
 // 支付广播超时（15 分钟）：PAYING → EXPIRED。
-// 修复(2026-08-30)：原先只置 matches，listings/holdings 会永久卡在 MATCHED；
-// 现按「先回滚挂单/持仓、后置 EXPIRED」顺序原子恢复（status/state 守卫保证幂等）。
+// 修复(2026-08-30)：①原先只置 matches，listings/holdings 会永久卡在 MATCHED，现先回滚挂单/持仓再置 EXPIRED；
+// ②broadcast_deadline 存 ISO 格式（"…T…Z"），与 datetime('now')（"… …"）字符串比较时 'T'>' ' 恒为假、
+// 超时从未生效 —— 统一改绑 ISO 参数比较。
 async function expireStaleMatches(env: Env): Promise<void> {
+  const nowIso = new Date().toISOString();
   await env.DB.prepare(
     `UPDATE listings SET status='LISTED', buyer_id=NULL WHERE status='MATCHED' AND id IN
-     (SELECT listing_id FROM matches WHERE status='PAYING' AND broadcast_deadline < datetime('now'))`
-  ).run();
+     (SELECT listing_id FROM matches WHERE status='PAYING' AND broadcast_deadline < ?)`
+  ).bind(nowIso).run();
   await env.DB.prepare(
     `UPDATE holdings SET state='LISTED', state_version=state_version+1 WHERE state='MATCHED' AND id IN
      (SELECT l.holding_id FROM listings l JOIN matches m ON m.listing_id=l.id
-      WHERE m.status='PAYING' AND m.broadcast_deadline < datetime('now'))`
-  ).run();
-  await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < datetime('now')`).run();
+      WHERE m.status='PAYING' AND m.broadcast_deadline < ?)`
+  ).bind(nowIso).run();
+  await env.DB.prepare(`UPDATE matches SET status='EXPIRED' WHERE status='PAYING' AND broadcast_deadline < ?`).bind(nowIso).run();
 }
 
 async function runCronOnce(env: Env): Promise<void> {
@@ -306,9 +308,10 @@ async function runCronOnce(env: Env): Promise<void> {
       const cents = hexToCents(log.data);
       const saltAmount = (cents / 100).toFixed(2);
       // 盐值反查订单（方案 A）；无匹配则记录为孤儿事件（运营审查）
+      // expires_at 为 ISO 格式，与 datetime('now') 字符串比较恒真 —— 绑 ISO 参数（修复 2026-08-30）
       const intent = await env.DB.prepare(
-        `SELECT id FROM payment_intents WHERE salt_amount=? AND status='PENDING' AND expires_at > datetime('now')`
-      ).bind(saltAmount).first<{ id: string }>();
+        `SELECT id FROM payment_intents WHERE salt_amount=? AND status='PENDING' AND expires_at > ?`
+      ).bind(saltAmount, new Date().toISOString()).first<{ id: string }>();
       const ev: ChainEvent = {
         txHash: log.transactionHash, logIndex: log.logIndex,
         blockNo: parseInt(log.blockNumber, 16), blockHash: log.blockHash,
