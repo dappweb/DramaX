@@ -6,7 +6,7 @@
     "dev": "next dev -p 3200",
     "build": "next build",
     "typecheck": "tsc --noEmit",
-    "deploy": "wrangler pages deploy out --project-name dramax-admin",
+    "deploy": "NEXT_PUBLIC_CHAIN_ID=56 NEXT_PUBLIC_API_BASE=https://dramax-api.dappweb.workers.dev npm run build && wrangler pages deploy out --project-name dramax-admin",
     "deploy:testnet": "NEXT_PUBLIC_CHAIN_ID=97 NEXT_PUBLIC_API_BASE=https://dramax-api-testnet.dappweb.workers.dev npm run build && wrangler pages deploy out --project-name dramax-admin-testnet"
   },
   "dependencies": {

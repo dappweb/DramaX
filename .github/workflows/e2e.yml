@@ -39,3 +39,23 @@ jobs:
         env:
           E2E_ADMIN_PASS: ${{ secrets.DRAMAX_E2E_ADMIN_PASS }}
         run: node business-e2e.mjs
+
+  prod-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify production API health (chain 56)
+        run: |
+          body=$(curl -sS -m 30 https://dramax-api.dappweb.workers.dev/health)
+          echo "$body"
+          echo "$body" | grep -q '"chain": *56\|"chain":56'
+          echo "chain=56 OK"
+
+      - name: Verify production frontends
+        run: |
+          code_m=$(curl -sS -m 30 -o /tmp/mobile.html -w "%{http_code}" https://dramax-mobile.pages.dev/)
+          grep -q "DramaX" /tmp/mobile.html
+          echo "mobile: $code_m + DramaX OK"
+          code_a=$(curl -sS -m 30 -o /tmp/admin.html -w "%{http_code}" https://dramax-admin.pages.dev/)
+          grep -q "DramaX" /tmp/admin.html
+          echo "admin: $code_a + DramaX OK"
