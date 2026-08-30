@@ -33,15 +33,13 @@ jobs:
           cat /tmp/l.json; echo
           [ "$CODE" = "401" ] && echo "PASS listings-guard" || { echo "FAIL listings-guard got $CODE"; exit 1; }
 
-          echo "== /auth/nonce =="
-          N=$(curl -sS -m 30 -X POST $BASE/auth/nonce -H "Content-Type: application/json" \
-            -d '{"wallet":"0xb7940a57d5fb0288776f95047467e3d72eed9e09"}')
+          echo "== GET /auth/nonce =="
+          N=$(curl -sS -m 30 $BASE/auth/nonce)
           echo "$N"
           echo "$N" | jq -e '.nonce != null' >/dev/null && echo "PASS nonce" || { echo "FAIL nonce"; exit 1; }
 
-          echo "== /admin/auth/nonce =="
-          A=$(curl -sS -m 30 -X POST $BASE/admin/auth/nonce -H "Content-Type: application/json" \
-            -d '{"wallet":"0xb7940a57d5fb0288776f95047467e3d72eed9e09"}')
+          echo "== GET /admin/auth/nonce =="
+          A=$(curl -sS -m 30 $BASE/admin/auth/nonce)
           echo "$A"
           echo "$A" | jq -e '.nonce != null' >/dev/null && echo "PASS admin nonce" || { echo "FAIL admin nonce"; exit 1; }
 
