@@ -1,0 +1,37 @@
+# DramaX Indexer 定时触发器
+# 背景：CF 账号 cron 配额超限（19/5），Mac launchd 受本机代理状态影响。
+# GitHub Actions 跑在 GitHub 侧，无墙、Mac 关机也照跑；public 仓库免费无限量。
+# 频率：*/5（GitHub 实际执行常有 3~10 分钟延迟，可接受：支付确认 = 扫描延迟 + 15 确认 ≈ 45s）
+# 手动触发：gh workflow run indexer.yml（也用于运行时冒烟：输出含两端 /health）
+name: dramax-indexer
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger indexer (prod + testnet)
+        env:
+          TOKEN: ${{ secrets.DRAMAX_CRON_TOKEN }}
+        run: |
+          echo "== prod /health =="
+          curl -sS -m 30 https://dramax-api.dappweb.workers.dev/health || true
+          echo
+          echo "== prod indexer =="
+          curl -sS -m 120 -X POST -H "x-internal-token: $TOKEN" \
+            https://dramax-api.dappweb.workers.dev/internal/cron || true
+          echo
+          echo "== testnet /health =="
+          curl -sS -m 30 https://dramax-api-testnet.dappweb.workers.dev/health || true
+          echo
+          echo "== testnet indexer =="
+          curl -sS -m 120 -X POST -H "x-internal-token: $TOKEN" \
+            https://dramax-api-testnet.dappweb.workers.dev/internal/cron || true
+          echo
