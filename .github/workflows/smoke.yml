@@ -1,0 +1,48 @@
+# DramaX API 冒烟测试（verify-live）
+# 手动触发，或 deploy 后调用。断言失败即 job 红。
+# 用法：gh workflow run smoke.yml
+name: dramax-smoke
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Testnet API smoke
+        env:
+          BASE: https://dramax-api-testnet.dappweb.workers.dev
+        run: |
+          set -e
+          echo "== /health (expect chain 97) =="
+          H=$(curl -sS -m 30 $BASE/health)
+          echo "$H"
+          echo "$H" | jq -e '.ok == true and .chain == 97' >/dev/null && echo "PASS health" || { echo "FAIL health"; exit 1; }
+
+          echo "== /sessions (expect 6 seeded) =="
+          S=$(curl -sS -m 30 $BASE/sessions)
+          echo "$S" | head -c 400; echo
+          echo "$S" | jq -e '(.sessions | length) >= 5' >/dev/null && echo "PASS sessions" || { echo "FAIL sessions"; exit 1; }
+
+          echo "== /listings (expect 2 seeded) =="
+          L=$(curl -sS -m 30 $BASE/listings)
+          echo "$L" | head -c 400; echo
+          echo "$L" | jq -e '(.listings | length) >= 2' >/dev/null && echo "PASS listings" || { echo "FAIL listings"; exit 1; }
+
+          echo "== /auth/nonce =="
+          N=$(curl -sS -m 30 -X POST $BASE/auth/nonce -H "Content-Type: application/json" \
+            -d '{"wallet":"0xb7940a57d5fb0288776f95047467e3d72eed9e09"}')
+          echo "$N"
+          echo "$N" | jq -e '.nonce != null' >/dev/null && echo "PASS nonce" || { echo "FAIL nonce"; exit 1; }
+
+          echo "== /admin/auth/nonce =="
+          A=$(curl -sS -m 30 -X POST $BASE/admin/auth/nonce -H "Content-Type: application/json" \
+            -d '{"wallet":"0xb7940a57d5fb0288776f95047467e3d72eed9e09"}')
+          echo "$A"
+          echo "$A" | jq -e '.nonce != null' >/dev/null && echo "PASS admin nonce" || { echo "FAIL admin nonce"; exit 1; }
+
+          echo "== ALL SMOKE PASS =="
