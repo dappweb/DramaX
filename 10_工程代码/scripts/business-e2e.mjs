@@ -67,13 +67,14 @@ for (const ep of ["/credits", "/credits/ledger", "/team/commissions", "/team/tre
   assert(r.status === 200, `GET ${ep}`, `status=${r.status}`);
 }
 
-// 4. 撮合种子挂单（demo-l2；不付款等回滚）
+// 4. 撮合任一在售挂单（优先 demo-l2；上一轮可能锁定了它，15min 窗口内未回滚则换目标）
 const listings = await j("/listings", { headers: auth });
-const target = (listings.body.listings ?? []).find((l) => l.id === "demo-l2");
-assert(!!target, "seed listing demo-l2 present", target?.list_price);
+const all = listings.body.listings ?? [];
+const target = all.find((l) => l.id === "demo-l2") ?? all[0];
+assert(!!target, "a LISTED seed listing present", target?.id ?? "-");
 
-const m = await j("/listings/demo-l2/match", { method: "POST", headers: auth });
-assert(m.status === 201 && m.body.matchId, "POST /listings/demo-l2/match", `status=${m.status} price=${m.body.price}`);
+const m = await j(`/listings/${target.id}/match`, { method: "POST", headers: auth });
+assert(m.status === 201 && m.body.matchId, `POST /listings/${target.id}/match`, `status=${m.status} price=${m.body.price}`);
 console.log(`matchId: ${m.body.matchId} (15min broadcast window)`);
 
 // 自撮合负向已被 UNIQUE seller 约束防住——改测不存在的挂单
@@ -97,7 +98,7 @@ assert(st.status === 200 && st.body.status === "PENDING", "GET /payments/:id/sta
 
 // 8. 撮合后挂单从转让市场消失
 const after = await j("/listings", { headers: auth });
-const stillThere = (after.body.listings ?? []).some((l) => l.id === "demo-l2");
+const stillThere = (after.body.listings ?? []).some((l) => l.id === target.id);
 assert(!stillThere, "matched listing removed from market");
 
 // 9. Admin 端点负向：无 token 401 / 未授权钱包 SIWE 403

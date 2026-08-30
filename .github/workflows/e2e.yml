@@ -24,6 +24,12 @@ jobs:
         working-directory: 10_工程代码/scripts
         run: npm i --no-save viem@^2
 
+      - name: Trigger cron first (release expired matches before assertions)
+        run: |
+          curl -sS -m 30 -X POST https://dramax-api-testnet.dappweb.workers.dev/internal/cron \
+            -H "x-internal-token: ${{ secrets.DRAMAX_CRON_TOKEN }}" || true
+          sleep 3
+
       - name: SIWE auth E2E
         working-directory: 10_工程代码/scripts
         run: node siwe-e2e.mjs
