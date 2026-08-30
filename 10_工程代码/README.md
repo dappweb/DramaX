@@ -76,11 +76,15 @@ nonce put 失败导致登录 500 → nonce/支付意图/扫描游标全部改落
 构建注入：`NEXT_PUBLIC_API_BASE=https://dramax-api.dappweb.workers.dev npm run build`（Pages 部署 out/）。
 
 **已知限制**：
-1. **Cron 未启用 → launchd 替代（✅ 2026-08-30）**：账号免费版 cron 配额 19/5 超限（存量 grandfathered，任何新增/修改被拒）。
-   Indexer 改由 Mac launchd 每分钟 curl `POST /internal/cron`（`x-internal-token` = INTERNAL_CRON_TOKEN secret，未配置时端点 503 关闭；
-   /internal/* 豁免区域屏蔽）。加载：`launchctl load ~/Library/LaunchAgents/com.dramax.indexer.plist`（会话内 bootstrap 报 error 5，需用户终端执行）。
-   令牌在 ~/.dramax-indexer-token（600），日志 /tmp/dramax-indexer.log；大陆直连 workers.dev 被墙时在 plist 的
-   DRAMAX_INDEXER_PROXY 填代理端口。Workers Paid（$5/月）后可改回原生 Cron（解开 [triggers] 注释）。
+1. **Cron 未启用 → GitHub Actions 替代（✅ 2026-08-30）**：账号免费版 cron 配额 19/5 超限。Indexer 触发走
+   `.github/workflows/indexer.yml`（schedule */5 + workflow_dispatch，GHA 侧 curl `POST /internal/cron`，
+   `x-internal-token` = repo secret `DRAMAX_CRON_TOKEN`；public 仓库免费无限量，Mac 关机也照跑）。
+   `/internal/*` 豁免区域屏蔽；INTERNAL_CRON_TOKEN secret 未配置时端点 503 关闭。
+   本机 launchd（com.dramax.indexer，60s）作为备份仍在跑，直连 workers.dev 需本机代理在线，否则 curl 超时无害。
+   Workers Paid（$5/月）后可改回原生 Cron。GHA 实际调度常有 3~10 分钟延迟：支付确认延迟 = 调度延迟 + 15 确认 ≈ 45s。
+   **BSC RPC 选型坑**：bnb 官方 dataseed（主/测试网）对 eth_getLogs 一律返回 -32005 limit exceeded（单块也拒）；
+   publicnode(allnodes) 按 IP 限流，Cloudflare Workers 共享出口 IP 被限。**现用：主网 NodeReal demo key、
+   测试网 bsc-testnet-rpc.publicnode.com**（均 secret 注入；生产正式放量前建议注册 NodeReal/dRPC 免费 key 换掉 demo key）。
 2. **自定义域未绑**：dramax.ai 域名未接入此 CF 账号（现有 zone：dappweb.ai 等 9 个）。临时用 pages.dev 域，
    ALLOWED_ORIGIN/TURNSTILE_HOSTNAMES 已包含 pages.dev；域名接入后加 CNAME 指向 Pages 项目即可。
 3. **BLOCKED_COUNTRIES = "CN"**：大陆访问返回 451（合规设计）；自测需挂代理（/internal/* 豁免）。
@@ -94,7 +98,7 @@ nonce put 失败导致登录 500 → nonce/支付意图/扫描游标全部改落
 - Admin：https://dramax-admin-testnet.pages.dev
 
 **资源**：D1 `dramax-testnet`（id 466f37be…，18 表 + 演示数据）、复用主 KV、Queues `dramax-chain-events-testnet`(+dlq)、
-secrets JWT_SECRET / BSC_RPC_URL（data-seed-prebsc）/ ADMIN_INITIAL_PASSWORD。
+secrets JWT_SECRET / BSC_RPC_URL（bsc-testnet-rpc.publicnode.com）/ ADMIN_INITIAL_PASSWORD / INTERNAL_CRON_TOKEN。
 vars：CHAIN_ID=97、USDT_CONTRACT=0x3376…6c7（testnet USDT）、CHAIN_CONFIRMATIONS=5、
 PLATFORM_ADDRESSES=0xb7940a57d5fb0288776f95047467e3d72eed9e09、BLOCKED_COUNTRIES=""（演示不屏蔽）。
 
