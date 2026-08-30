@@ -94,6 +94,16 @@ nonce put 失败导致登录 500 → nonce/支付意图/扫描游标全部改落
    复跑：`cd 10_工程代码/scripts && node siwe-e2e.mjs`（node_modules symlink 已建，指 workers-api 依赖）。
    种子挂单实际 ID 为 demo-l1/demo-l2（挂价 15201.24 / 945.90，demo-h4/h5 为历史误记）。
    mobile/admin testnet 页面渲染正常（Playwright 快照验证；未连接钱包时主体留白为设计行为，console 仅 favicon 404）。
+6. **全业务链路 E2E 已通过（✅ 2026-08-30）**：`scripts/business-e2e.mjs`（场次 → 预约负向 402/401/400 → 只读账户端点 →
+   撮合种子挂单 → P2P 支付意图 → Admin 负向 401/403，17 项）。GHA 双 workflow 执行：`.github/workflows/e2e.yml`
+   （workflow_dispatch，runner 直连 workers.dev；本机 workers.dev 被墙时用它跑）+ smoke。run 33293631893：28 项全 PASS。
+   **顺带修复 4 个真 bug（testnet + 生产均已部署）**：
+   ① reserve 手续费单位错配（feeFor 元 vs toCents 分，fee>0 场次永远 fee mismatch）；
+   ② match INSERT 漏 NOT NULL 列 payee_addr/salt_amount 必 500（现撮合时预生成收款地址+盐，intent 复用同 payee/盐）；
+   ③ 支付超时 EXPIRED 死代码：ISO 时间（"…T…Z"）与 datetime('now')（"… …"）字符串比较 'T'>' ' 恒假，
+      超时释放/回滚从未生效（现统一绑 ISO 参数；同时把回滚移到链上扫描之前，RPC 故障不阻塞）；
+   ④ EXPIRED 只置 matches 不回滚 listings/holdings（卡死 MATCHED，现三条 SQL 原子恢复）。
+   payment_intents 过期检查同步修（原 expires_at > datetime('now') 恒真，过期盐仍可匹配入账——安全隐患）。
 
 ## BSC Testnet 演示环境（✅ 2026-08-29 已部署，chainId 97）
 
