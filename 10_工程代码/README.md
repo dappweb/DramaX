@@ -89,6 +89,11 @@ nonce put 失败导致登录 500 → nonce/支付意图/扫描游标全部改落
    ALLOWED_ORIGIN/TURNSTILE_HOSTNAMES 已包含 pages.dev；域名接入后加 CNAME 指向 Pages 项目即可。
 3. **BLOCKED_COUNTRIES = "CN"**：大陆访问返回 451（合规设计）；自测需挂代理（/internal/* 豁免）。
 4. ~~PLATFORM_ADDRESSES 未配置~~ ✅ 已配置 0xb7940a57…9e09（owner 钱包，用户充值 USDT 归集）；ADMIN_OWNER_WALLET 同地址已配。
+5. **SIWE 真实签名 E2E 已通过（✅ 2026-08-30）**：`scripts/siwe-e2e.mjs`（一次性钱包 → nonce → EIP-4361 签名 → 登录 →
+   JWT 鉴权读 /holdings /listings → refresh → nonce 重放 401 → 无 token 401，9 项全 PASS）。
+   复跑：`cd 10_工程代码/scripts && node siwe-e2e.mjs`（node_modules symlink 已建，指 workers-api 依赖）。
+   种子挂单实际 ID 为 demo-l1/demo-l2（挂价 15201.24 / 945.90，demo-h4/h5 为历史误记）。
+   mobile/admin testnet 页面渲染正常（Playwright 快照验证；未连接钱包时主体留白为设计行为，console 仅 favicon 404）。
 
 ## BSC Testnet 演示环境（✅ 2026-08-29 已部署，chainId 97）
 
