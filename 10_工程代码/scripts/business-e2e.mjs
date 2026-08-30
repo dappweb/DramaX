@@ -119,3 +119,66 @@ assert(aLogin.status === 403, "admin SIWE unauthorized wallet -> 403", `status=$
 
 console.log("\n=== ALL BUSINESS E2E PASS ===");
 console.log("note: demo-l2 将在 15 分钟 broadcast window 超时后由 cron 自动回滚为 LISTED（回滚修复已部署）");
+
+// ═══ Admin 正向管理链路（凭据经 env 注入，不落 repo） ═══
+const ADMIN_PASS = process.env.E2E_ADMIN_PASS;
+if (ADMIN_PASS) {
+  console.log("\n── Admin 管理链路 ──");
+  // 1. 密码登录（负向：错密码 401）
+  const badPw = await j("/admin/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ account: "e2e-admin", password: "wrong-pass" }) });
+  assert(badPw.status === 401, "admin login wrong password -> 401", `status=${badPw.status}`);
+  const aL = await j("/admin/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ account: "e2e-admin", password: ADMIN_PASS }) });
+  assert(aL.status === 200 && aL.body.token && aL.body.role === "owner", "admin login (password bootstrap path)", `role=${aL.body.role}`);
+  const aAuth = { authorization: `Bearer ${aL.body.token}`, "content-type": "application/json" };
+
+  // 2. 看板 + 审计
+  const dash = await j("/admin/dashboard", { headers: aAuth });
+  assert(dash.status === 200 && !!dash.body.tiers, "GET /admin/dashboard", `status=${dash.status}`);
+
+  // 3. 剧本：创建 → 提交 → 上架（负向：跳过 submit 直接 approve 应 409）
+  const hex = Array.from(crypto.getRandomValues(new Uint8Array(32))).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const sc = await j("/admin/scripts", { method: "POST", headers: aAuth, body: JSON.stringify({ title: "E2E 测试剧本", price: 2000, synopsis: "auto", category: "urban", episodes: 80, copyright_hash: hex }) });
+  assert(sc.status === 201 && sc.body.state === "DRAFT", "POST /admin/scripts -> DRAFT", sc.body.id);
+  const early = await j(`/admin/scripts/${sc.body.id}/approve`, { method: "POST", headers: aAuth });
+  assert(early.status === 409, "approve before submit -> 409", `status=${early.status}`);
+  const sub = await j(`/admin/scripts/${sc.body.id}/submit`, { method: "POST", headers: aAuth });
+  assert(sub.status === 200 && sub.body.state === "REVIEWING", "submit -> REVIEWING");
+  const app = await j(`/admin/scripts/${sc.body.id}/approve`, { method: "POST", headers: aAuth });
+  assert(app.status === 200 && app.body.state === "LISTED", "approve -> LISTED");
+
+  // 3b. 负向：无版权哈希的剧本 approve 应 400
+  const sc2 = await j("/admin/scripts", { method: "POST", headers: aAuth, body: JSON.stringify({ title: "E2E 无哈希剧本", price: 2000 }) });
+  await j(`/admin/scripts/${sc2.body.id}/submit`, { method: "POST", headers: aAuth });
+  const app2 = await j(`/admin/scripts/${sc2.body.id}/approve`, { method: "POST", headers: aAuth });
+  assert(app2.status === 400 && String(app2.body.error).includes("copyright_hash"), "approve w/o copyright_hash -> 400", app2.body.error);
+
+  // 4. 场次：NORMAL 区下一个 UTC 16:00，档位 2000–5000（fee 75）
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 1);
+  d.setUTCHours(16, 0, 0, 0);
+  const ssn = await j("/admin/sessions", {
+    method: "POST", headers: aAuth,
+    body: JSON.stringify({ script_id: sc.body.id, zone: "NORMAL", start_at: d.toISOString(), tier_min: "2000", tier_max: "5000", capacity: 10 }),
+  });
+  assert(ssn.status === 201 && ssn.body.fee === "75.00", "POST /admin/sessions -> SCHEDULED", `fee=${ssn.body.fee}`);
+  // 负向：时间规则（普通区非 16:00 应 400）
+  const badT = new Date(d); badT.setUTCHours(10, 0, 0, 0);
+  const ssnBad = await j("/admin/sessions", {
+    method: "POST", headers: aAuth,
+    body: JSON.stringify({ script_id: sc.body.id, zone: "NORMAL", start_at: badT.toISOString(), tier_min: "2000", tier_max: "5000", capacity: 10 }),
+  });
+  assert(ssnBad.status === 400, "session wrong hour -> 400", ssnBad.body.error);
+
+  // 5. 用户端可见新场次（SCHEDULED 含在公开列表）
+  const pub = await j("/sessions");
+  assert((pub.body.sessions ?? []).some((s) => s.id === ssn.body.id), "new session visible on public /sessions");
+
+  // 6. 审计日志有记录
+  const logs = await j("/admin/audit-logs?limit=50", { headers: aAuth });
+  const kinds = (logs.body.logs ?? []).map((x) => x.action ?? "");
+  assert(kinds.includes("script.create") && kinds.includes("session.create"), "audit-logs recorded", kinds.slice(0, 5).join(","));
+
+  console.log("=== ADMIN CHAIN PASS ===");
+} else {
+  console.log("\n(skip admin chain: E2E_ADMIN_PASS not set)");
+}

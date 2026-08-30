@@ -4,6 +4,8 @@ name: dramax-e2e
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "17 */2 * * *" # 每 2 小时（避开整点高峰；GHA 调度常有延迟）
 
 permissions: {}
 
@@ -28,4 +30,6 @@ jobs:
 
       - name: Business E2E
         working-directory: 10_工程代码/scripts
+        env:
+          E2E_ADMIN_PASS: ${{ secrets.DRAMAX_E2E_ADMIN_PASS }}
         run: node business-e2e.mjs
