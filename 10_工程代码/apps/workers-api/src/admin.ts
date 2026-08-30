@@ -4,7 +4,7 @@
 import { Hono } from "hono";
 import bcrypt from "bcryptjs";
 import type { Env } from "./index";
-import { signJWT, toCents, fmt, siweNonce, verifySiwe, verifyTurnstile, kvPut, kvGet, kvDel } from "./util";
+import { signJWT, siweNonce, verifySiwe, verifyTurnstile, kvPut, kvGet, kvDel } from "./util";
 import { tierFor, TIERS } from "@dramax/shared";
 
 export const admin = new Hono<{ Bindings: Env }>();
@@ -190,14 +190,17 @@ route.post("/sessions", async (c) => {
   const fee = feeFor(Number(b.tier_min));
   if (!fee || fee.pending) return c.json({ error: "该档位待确认，不可创建" }, 400);
 
+  // 修复(2026-08-30)：fee.fee 为元（如 75），sessions.fee 列存元字符串（'75'）；
+  // 原 fmt(fee.fee) 把元当分输出 "0.75"。直接 toFixed(2)。
+  const feeStr = fee.fee!.toFixed(2);
   const id = crypto.randomUUID();
   await c.env.DB.prepare(
     `INSERT INTO sessions (id, script_id, zone, start_at, tier_min, tier_max, fee, capacity, status) VALUES (?,?,?,?,?,?,?,?, 'SCHEDULED')`
   )
-    .bind(id, b.script_id, b.zone, b.start_at, b.tier_min, b.tier_max, fmt(fee.fee!), b.capacity)
+    .bind(id, b.script_id, b.zone, b.start_at, b.tier_min, b.tier_max, feeStr, b.capacity)
     .run();
-  await audit(c, adminId, "session.create", "session", id, null, { script_id: b.script_id, zone: b.zone, start_at: b.start_at, fee: fmt(fee.fee!) });
-  return c.json({ id, fee: fmt(fee.fee!) }, 201);
+  await audit(c, adminId, "session.create", "session", id, null, { script_id: b.script_id, zone: b.zone, start_at: b.start_at, fee: feeStr });
+  return c.json({ id, fee: feeStr }, 201);
 });
 
 // ─── 看板（三生死线） ───
