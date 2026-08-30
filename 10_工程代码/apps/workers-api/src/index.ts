@@ -279,6 +279,8 @@ async function expireStaleMatches(env: Env): Promise<void> {
 }
 
 async function runCronOnce(env: Env): Promise<void> {
+  // 超时回滚放在最前：链上 RPC 故障（getLogs 抛错）不应阻塞撮合超时释放
+  await expireStaleMatches(env);
   const latestHex = await rpc<string>(env.BSC_RPC_URL, "eth_blockNumber", []);
   const latest = parseInt(latestHex, 16);
   let last = Number((await kvGet(env.DB, "scan:lastBlock")) ?? latest - chainOf(env).confirmations - 1);
@@ -322,9 +324,6 @@ async function runCronOnce(env: Env): Promise<void> {
     last = to;
   }
   await kvPut(env.DB, "scan:lastBlock", String(last));
-
-  // 支付广播超时（15 分钟）+ 挂单/持仓回滚（原 60min txid 模式已废除）
-  await expireStaleMatches(env);
   // 到期扫描：HOLDING 满 7 天 → MATURED
   await env.DB.prepare(
     `UPDATE holdings SET state='MATURED', matured_at=datetime('now') WHERE state='HOLDING' AND created_at <= datetime('now', '-7 days')`
