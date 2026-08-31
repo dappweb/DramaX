@@ -27,6 +27,7 @@ export interface Env {
   USDT_CONTRACT?: string;     // USDT 合约覆盖（testnet 0x3376…6C7）；缺省用 shared.CHAIN.USDT
   CHAIN_CONFIRMATIONS?: string; // 确认数覆盖；缺省 15
   INTERNAL_CRON_TOKEN?: string; // /internal/cron 触发令牌（wrangler secret put；未配置=端点 503 关闭）
+  ENV?: string;               // 环境标记（[env.testnet.vars] ENV="testnet"；/internal/simulate-deposit 仅 testnet 开放）
 }
 
 // 链参数：环境变量覆盖 > shared 单一事实源（mainnet BSC 56 / testnet 97）
@@ -254,6 +255,43 @@ app.post("/internal/cron", async (c) => {
   if ((c.req.header("x-internal-token") ?? "") !== expect) return c.json({ error: "unauthorized" }, 401);
   await runCronOnce(c.env);
   return c.json({ ok: true, ts: Math.floor(Date.now() / 1000) });
+});
+
+// ─── 内部模拟入账（仅 testnet）：把既有 PENDING 意图直接推进入账引擎 ───
+// 用途：无测试币 gas 时 E2E 验证 Queue consumer 全链路（确认数/reorg 校验/D1 原子入账）。
+// 真实链上转账段（getLogs 扫描匹配）由 deposit-e2e.mjs 在 gas 就绪后覆盖。
+// 鉴权同 /internal/cron；生产（ENV!=testnet）直接 404 关闭。
+app.post("/internal/simulate-deposit", async (c) => {
+  if (c.env.ENV !== "testnet") return c.json({ error: "not found" }, 404);
+  const expect = c.env.INTERNAL_CRON_TOKEN;
+  if (!expect) return c.json({ error: "internal endpoints disabled" }, 503);
+  if ((c.req.header("x-internal-token") ?? "") !== expect) return c.json({ error: "unauthorized" }, 401);
+  const { intentId } = await c.req.json<{ intentId: string }>();
+  if (!intentId) return c.json({ error: "missing intentId" }, 400);
+  const intent = await c.env.DB.prepare(
+    `SELECT id, user_id, salt_amount FROM payment_intents WHERE id=? AND status='PENDING' AND order_type='DEPOSIT'`
+  ).bind(intentId).first<any>();
+  if (!intent) return c.json({ error: "intent not found or not PENDING" }, 404);
+
+  const latest = parseInt(await rpc<string>(c.env.BSC_RPC_URL, "eth_blockNumber", []), 16);
+  const blockNo = latest - chainOf(c.env).confirmations - 1; // 满足确认数 + 不含 reorg 窗口
+  const block = await rpc<any>(c.env.BSC_RPC_URL, "eth_getBlockByNumber", ["0x" + blockNo.toString(16), false]);
+  if (!block?.hash) return c.json({ error: "block fetch failed" }, 502);
+
+  const txHash = "0x" + Array.from(crypto.getRandomValues(new Uint8Array(32))).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const cents = toCents(intent.salt_amount);
+  const platform = (c.env.PLATFORM_ADDRESSES ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const ev: ChainEvent = {
+    txHash, logIndex: 0, blockNo, blockHash: block.hash,
+    from: "0x" + "ab".repeat(20), // 模拟付款方（非平台地址，不影响入账逻辑）
+    to: platform[0] ?? "0x" + "cd".repeat(20),
+    cents, intentId: intent.id,
+  };
+  await c.env.DB.prepare(
+    `INSERT OR IGNORE INTO chain_events (tx_hash, log_index, block_no, block_hash, contract_addr, from_addr, to_addr, amount, status, intent_id) VALUES (?,?,?,?,?,?,?,?, 'PENDING', ?)`
+  ).bind(ev.txHash, ev.logIndex, ev.blockNo, ev.blockHash, chainOf(c.env).usdt, ev.from, ev.to, (cents / 100).toFixed(2), ev.intentId).run();
+  await c.env.EVENTS.send(ev);
+  return c.json({ ok: true, queued: true, txHash, blockNo, cents: (cents / 100).toFixed(2) }, 202);
 });
 
 // ─── 交易链路（卖出/挂单/撮合/积分/团队/账本） ───

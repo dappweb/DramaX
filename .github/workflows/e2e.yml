@@ -60,6 +60,27 @@ jobs:
           grep -q "DramaX" /tmp/admin.html
           echo "admin: $code_a + DramaX OK"
 
+  # 充值入账引擎 E2E（模拟模式，无需 gas）：Queue consumer 全链路
+  sim-deposit-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install deps (viem)
+        working-directory: 10_工程代码/scripts
+        run: npm i --no-save viem@^2
+
+      - name: Deposit engine sim E2E
+        working-directory: 10_工程代码/scripts
+        env:
+          INTERNAL_TOKEN: ${{ secrets.DRAMAX_CRON_TOKEN }}
+        run: node deposit-sim-e2e.mjs
+
   # 充值入账链路 E2E：真实链上转账（MockUSDT）。前置：repo variable DRAMAX_MOCK_USDT 已设（MockUSDT 合约地址）
   deposit-e2e:
     if: ${{ vars.DRAMAX_MOCK_USDT != '' }}
