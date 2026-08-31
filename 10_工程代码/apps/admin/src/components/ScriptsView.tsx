@@ -18,6 +18,8 @@ export function ScriptsView() {
   const [err, setErr] = useState("");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: "", price: "", copyright_hash: "", synopsis: "", category: "", episodes: "", cover_url: "", work_url: "" });
+  const [editing, setEditing] = useState<ScriptRow | null>(null);
+  const [editForm, setEditForm] = useState({ cover_url: "", work_url: "" });
 
   const load = useCallback(async () => {
     try {
@@ -55,6 +57,23 @@ export function ScriptsView() {
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "创建失败");
+    }
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    setErr("");
+    setMsg("");
+    try {
+      await adminApi(`/admin/scripts/${editing.id}`, {
+        method: "PATCH",
+        body: { cover_url: editForm.cover_url.trim(), work_url: editForm.work_url.trim() },
+      });
+      setMsg(`《${editing.title}》封面/作品地址已更新`);
+      setEditing(null);
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "保存失败");
     }
   }
 
@@ -129,6 +148,7 @@ export function ScriptsView() {
                     <td><span className={`tag ${meta.cls}`}>{meta.label}</span></td>
                     <td className="num">{s.created_at}</td>
                     <td>
+                      <button className="btn" onClick={() => { setEditing(s); setEditForm({ cover_url: s.cover_url ?? "", work_url: s.work_url ?? "" }); }}>编辑</button>
                       {s.state === "DRAFT" && <button className="btn" onClick={() => transition(s, "submit")}>提交审核</button>}
                       {s.state === "REVIEWING" && <button className="btn primary" onClick={() => transition(s, "approve")}>审核上架</button>}
                       {s.state === "LISTED" && <button className="btn danger" onClick={() => transition(s, "remove")}>下架</button>}
@@ -141,6 +161,26 @@ export function ScriptsView() {
           </tbody>
         </table>
       </div>
+
+      {editing && (
+        <div className="card" style={{ marginTop: 14 }}>
+          <div className="section-head"><h2>编辑《{editing.title}》</h2><span className="desc">封面图与作品地址，任意状态可改</span></div>
+          <div className="form-grid">
+            <div className="field" style={{ gridColumn: "1 / -1" }}>
+              <label>封面图 URL</label>
+              <input className="mono" value={editForm.cover_url} onChange={(e) => setEditForm({ ...editForm, cover_url: e.target.value })} placeholder="https://…/cover.jpg（留空清除）" />
+            </div>
+            <div className="field" style={{ gridColumn: "1 / -1" }}>
+              <label>作品地址</label>
+              <input className="mono" value={editForm.work_url} onChange={(e) => setEditForm({ ...editForm, work_url: e.target.value })} placeholder="https://…（留空清除）" />
+            </div>
+          </div>
+          <div className="actions">
+            <button className="btn primary" onClick={saveEdit}>保存</button>
+            <button className="btn" onClick={() => setEditing(null)}>取消</button>
+          </div>
+        </div>
+      )}
 
       {creating && (
         <div className="card" style={{ marginTop: 14 }}>

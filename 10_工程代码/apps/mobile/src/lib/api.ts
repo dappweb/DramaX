@@ -81,6 +81,17 @@ export interface ListingRow {
   principal: string;
 }
 
+export interface ScriptDetail {
+  id: string;
+  title: string;
+  synopsis: string | null;
+  category: string | null;
+  episodes: number | null;
+  cover_url: string | null;
+  work_url: string | null;
+  created_at: string;
+}
+
 export interface PaymentIntent {
   intentId: string;
   payee: string;

@@ -183,6 +183,15 @@ app.get("/sessions", async (c) => {
   return c.json({ sessions: rows.results, tiers: rules.TIERS });
 });
 
+// ─── 剧本公开详情（mobile /work?id= 作品页使用；仅暴露展示字段，不含 price/copyright_hash） ───
+app.get("/scripts/:id", async (c) => {
+  const row = await c.env.DB.prepare(
+    `SELECT id, title, synopsis, category, episodes, cover_url, work_url, created_at FROM scripts WHERE id=?`
+  ).bind(c.req.param("id")).first();
+  if (!row) return c.json({ error: "not found" }, 404);
+  return c.json(row);
+});
+
 app.post("/sessions/:id/reserve", async (c) => {
   const user = await requireUser(c);
   if (!user) return c.json({ error: "unauthorized" }, 401);

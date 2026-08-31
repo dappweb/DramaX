@@ -139,6 +139,20 @@ route.get("/scripts", async (c) => {
   return c.json({ scripts: await q.all() });
 });
 
+// ─── 剧本编辑：封面图 / 作品地址（低风险展示元数据，任意状态可改；空串归一为 NULL） ───
+route.patch("/scripts/:id", async (c) => {
+  const adminId = (c as any).get("adminId") as string;
+  const id = c.req.param("id");
+  const body = await c.req.json<Record<string, any>>();
+  const row = await c.env.DB.prepare(`SELECT id, cover_url, work_url FROM scripts WHERE id=?`).bind(id).first<any>();
+  if (!row) return c.json({ error: "not found" }, 404);
+  const coverUrl = body.cover_url !== undefined ? (body.cover_url || null) : row.cover_url;
+  const workUrl = body.work_url !== undefined ? (body.work_url || null) : row.work_url;
+  await c.env.DB.prepare(`UPDATE scripts SET cover_url=?, work_url=?, updated_at=datetime('now') WHERE id=?`).bind(coverUrl, workUrl, id).run();
+  await audit(c, adminId, "script.update", "script", id, { cover_url: row.cover_url, work_url: row.work_url }, { cover_url: coverUrl, work_url: workUrl });
+  return c.json({ id, cover_url: coverUrl, work_url: workUrl });
+});
+
 // ─── 状态流转：统一守卫（状态不符 409）+ 审计 ───
 async function transition(c: any, id: string, from: string[], to: string, action: string, extraValidate?: (s: any) => Promise<string | null>) {
   const adminId = (c as any).get("adminId") as string;
