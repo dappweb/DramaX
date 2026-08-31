@@ -85,7 +85,7 @@ route.post("/holdings/:id/topup", async (c) => {
 // ─── 挂单 ───
 route.get("/listings", async (c) => {
   const rows = await c.env.DB.prepare(
-    `SELECT l.id, l.list_price, l.status, l.created_at, s.title, s.cover_key, h.zone, h.principal
+    `SELECT l.id, l.list_price, l.status, l.created_at, s.title, s.cover_key, s.cover_url, s.work_url, h.zone, h.principal
      FROM listings l JOIN holdings h ON h.id=l.holding_id JOIN scripts s ON s.id=h.script_id
      WHERE l.status='LISTED' ORDER BY l.created_at DESC LIMIT 100`
   ).all();

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type ListingRow, type PaymentIntent } from "@/lib/api";
 import { PaymentSheet } from "./PaymentSheet";
+import { ScriptCover, WorkLink } from "./ScriptCover";
 
 export function MarketView() {
   const [listings, setListings] = useState<ListingRow[]>([]);
@@ -53,12 +54,14 @@ export function MarketView() {
       ) : (
         listings.map((l) => (
           <div className="card listing" key={l.id}>
-            <div>
+            <ScriptCover coverUrl={l.cover_url} title={l.title} />
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sess-name">{l.title || "剧本权益"}</div>
               <div className="sess-meta num">
                 <span className="tag" style={{ marginRight: 6 }}>{l.zone === "NORMAL" ? "普通区" : "创新区"}</span>
                 本金 {l.principal}
               </div>
+              <div className="sess-meta"><WorkLink workUrl={l.work_url} /></div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div className="price num">¥{l.list_price}</div>

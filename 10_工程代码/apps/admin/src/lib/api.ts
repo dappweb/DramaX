@@ -48,6 +48,8 @@ export interface ScriptRow {
   episodes: number | null;
   price: string;
   copyright_hash: string | null;
+  cover_url: string | null;
+  work_url: string | null;
   state: "DRAFT" | "REVIEWING" | "LISTED" | "REMOVED";
   created_by: string;
   created_at: string;

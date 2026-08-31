@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api, type PaymentIntent, type SessionRow } from "@/lib/api";
 import { PaymentSheet } from "./PaymentSheet";
+import { ScriptCover, WorkLink } from "./ScriptCover";
 
 // 档位与手续费口径展示（参照 shared.TIERS；300-1,000 待拍板）
 const TIERS = [
@@ -80,14 +81,19 @@ export function HomeView() {
       ) : (
         sessions.map((s) => (
           <div className="card sess" key={s.id}>
-            <div>
+            <ScriptCover coverUrl={s.cover_url} title={s.script_title} />
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sess-name">
                 <span className="tag" style={{ marginRight: 6 }}>{zoneTag(s.zone)}</span>
+                {s.script_title || `档位 ${s.tier_min} - ${s.tier_max}`}
+              </div>
+              <div className="sess-meta num">
                 档位 {s.tier_min} - {s.tier_max}
               </div>
               <div className="sess-meta num">
                 手续费 ¥{s.fee} · {s.taken}/{s.capacity} 已约 · {s.start_at}
               </div>
+              <div className="sess-meta"><WorkLink workUrl={s.work_url} /></div>
             </div>
             <button className="btn primary" disabled={s.taken >= s.capacity} onClick={() => setActive(s)}>
               {s.taken >= s.capacity ? "已满" : "抢购"}

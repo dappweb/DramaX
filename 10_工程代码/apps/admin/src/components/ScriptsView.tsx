@@ -17,7 +17,7 @@ export function ScriptsView() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ title: "", price: "", copyright_hash: "", synopsis: "", category: "", episodes: "" });
+  const [form, setForm] = useState({ title: "", price: "", copyright_hash: "", synopsis: "", category: "", episodes: "", cover_url: "", work_url: "" });
 
   const load = useCallback(async () => {
     try {
@@ -45,11 +45,13 @@ export function ScriptsView() {
           synopsis: form.synopsis || undefined,
           category: form.category || undefined,
           episodes: form.episodes ? Number(form.episodes) : undefined,
+          cover_url: form.cover_url.trim() || undefined,
+          work_url: form.work_url.trim() || undefined,
         },
       });
       setMsg(`已创建草稿《${form.title}》`);
       setCreating(false);
-      setForm({ title: "", price: "", copyright_hash: "", synopsis: "", category: "", episodes: "" });
+      setForm({ title: "", price: "", copyright_hash: "", synopsis: "", category: "", episodes: "", cover_url: "", work_url: "" });
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "创建失败");
@@ -98,18 +100,30 @@ export function ScriptsView() {
         <table>
           <thead>
             <tr>
-              <th>标题</th><th className="num">定价 (USDT)</th><th>版权哈希</th><th>状态</th><th>创建时间</th><th>操作</th>
+              <th>封面</th><th>标题</th><th className="num">定价 (USDT)</th><th>版权哈希</th><th>状态</th><th>创建时间</th><th>操作</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={6} style={{ color: "var(--muted)", textAlign: "center", padding: 30 }}>暂无剧本</td></tr>
+              <tr><td colSpan={7} style={{ color: "var(--muted)", textAlign: "center", padding: 30 }}>暂无剧本</td></tr>
             ) : (
               rows.map((s) => {
                 const meta = STATE_META[s.state] ?? { label: s.state, cls: "gray" };
                 return (
                   <tr key={s.id}>
-                    <td style={{ fontWeight: 700 }}>{s.title}</td>
+                    <td>
+                      {s.cover_url ? (
+                        <img src={s.cover_url} alt={s.title} width={40} height={40} loading="lazy" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", display: "block" }} />
+                      ) : (
+                        <div style={{ width: 40, height: 40, borderRadius: 8, background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🎬</div>
+                      )}
+                    </td>
+                    <td style={{ fontWeight: 700 }}>
+                      {s.title}
+                      {s.work_url && (
+                        <a className="mono" href={s.work_url} target="_blank" rel="noopener noreferrer" style={{ display: "block", fontSize: 11, marginTop: 2 }}>作品 ↗</a>
+                      )}
+                    </td>
                     <td className="num">{s.price}</td>
                     <td className="mono">{s.copyright_hash ? `${s.copyright_hash.slice(0, 10)}…${s.copyright_hash.slice(-6)}` : "—"}</td>
                     <td><span className={`tag ${meta.cls}`}>{meta.label}</span></td>
@@ -140,6 +154,14 @@ export function ScriptsView() {
             </div>
             <div className="field"><label>分类</label><input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
             <div className="field"><label>集数</label><input className="num" inputMode="numeric" value={form.episodes} onChange={(e) => setForm({ ...form, episodes: e.target.value.replace(/[^\d]/g, "") })} /></div>
+            <div className="field" style={{ gridColumn: "1 / -1" }}>
+              <label>封面图 URL</label>
+              <input className="mono" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} placeholder="https://…/cover.jpg" />
+            </div>
+            <div className="field" style={{ gridColumn: "1 / -1" }}>
+              <label>作品地址</label>
+              <input className="mono" value={form.work_url} onChange={(e) => setForm({ ...form, work_url: e.target.value })} placeholder="https://…/work/…" />
+            </div>
             <div className="field" style={{ gridColumn: "1 / -1" }}><label>简介</label><textarea rows={2} value={form.synopsis} onChange={(e) => setForm({ ...form, synopsis: e.target.value })} /></div>
           </div>
           <div className="actions">

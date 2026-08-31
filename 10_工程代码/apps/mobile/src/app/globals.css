@@ -75,3 +75,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .tab-item.active { color: var(--primary); }
 
 .center-tip { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 20px; }
+
+/* 封面预览 · 作品跳转（市场列表 / 首页场次卡片） */
+.work-link { display: inline-block; font-size: 11px; font-weight: 700; color: var(--primary); text-decoration: none; margin-top: 2px; }
+.work-link:active { opacity: 0.7; }

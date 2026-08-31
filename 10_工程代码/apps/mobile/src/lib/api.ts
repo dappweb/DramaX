@@ -51,6 +51,9 @@ export interface SessionRow {
   capacity: number;
   taken: number;
   status: string;
+  script_title: string | null;
+  cover_url: string | null;
+  work_url: string | null;
 }
 
 export interface HoldingRow {
@@ -71,6 +74,9 @@ export interface ListingRow {
   status: string;
   created_at: string;
   title: string;
+  cover_key: string | null;
+  cover_url: string | null;
+  work_url: string | null;
   zone: "NORMAL" | "INNOVATION";
   principal: string;
 }

@@ -174,10 +174,12 @@ app.get("/payments/:id/status", async (c) => {
 
 // ─── 场次与抢购 ───
 app.get("/sessions", async (c) => {
+  // JOIN scripts 带出标题/封面/作品地址，供前端卡片展示封面缩略图与跳转
+  const SEL = `SELECT se.*, s.title AS script_title, s.cover_url, s.work_url FROM sessions se JOIN scripts s ON s.id=se.script_id`;
   const zone = c.req.query("zone");
   const rows = zone
-    ? await c.env.DB.prepare(`SELECT * FROM sessions WHERE zone=? AND status IN ('SCHEDULED','OPEN') ORDER BY start_at`).bind(zone).all()
-    : await c.env.DB.prepare(`SELECT * FROM sessions WHERE status IN ('SCHEDULED','OPEN') ORDER BY start_at`).all();
+    ? await c.env.DB.prepare(`${SEL} WHERE se.zone=? AND se.status IN ('SCHEDULED','OPEN') ORDER BY se.start_at`).bind(zone).all()
+    : await c.env.DB.prepare(`${SEL} WHERE se.status IN ('SCHEDULED','OPEN') ORDER BY se.start_at`).all();
   return c.json({ sessions: rows.results, tiers: rules.TIERS });
 });
 

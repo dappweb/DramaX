@@ -120,10 +120,11 @@ route.post("/scripts", async (c) => {
   const adminId = (c as any).get("adminId") as string;
   const body = await c.req.json<Record<string, any>>();
   const id = crypto.randomUUID();
+  // cover_url/work_url：空字符串归一为 NULL（与 synopsis 等可空字段处理方式一致）
   await c.env.DB.prepare(
-    `INSERT INTO scripts (id, title, synopsis, category, episodes, price, copyright_hash, state, created_by) VALUES (?,?,?,?,?,?,?,?,?)`
+    `INSERT INTO scripts (id, title, synopsis, category, episodes, price, copyright_hash, cover_url, work_url, state, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)`
   )
-    .bind(id, body.title, body.synopsis ?? null, body.category ?? null, body.episodes ?? null, String(body.price), body.copyright_hash ?? null, "DRAFT", adminId)
+    .bind(id, body.title, body.synopsis ?? null, body.category ?? null, body.episodes ?? null, String(body.price), body.copyright_hash ?? null, body.cover_url || null, body.work_url || null, "DRAFT", adminId)
     .run();
   await audit(c, adminId, "script.create", "script", id, null, { title: body.title, price: body.price });
   return c.json({ id, state: "DRAFT" }, 201);
