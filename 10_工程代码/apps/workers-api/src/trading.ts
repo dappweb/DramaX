@@ -226,7 +226,9 @@ route.get("/credits", async (c) => {
 route.get("/credits/ledger", async (c) => {
   const userId = (c as any).get("userId") as string;
   if (!userId) return USER_ERR(c);
-  return c.json({ ledger: await c.env.DB.prepare(`SELECT * FROM credit_ledger WHERE user_id=? ORDER BY id DESC LIMIT 100`).bind(userId).all() });
+  // 修复(2026-08-31)：.all() 返回 D1Result 包装，直接 c.json 会把 {results:[…]} 塞给前端（同 audit-logs bug⑥）
+  const rows = await c.env.DB.prepare(`SELECT * FROM credit_ledger WHERE user_id=? ORDER BY id DESC LIMIT 100`).bind(userId).all();
+  return c.json({ ledger: rows.results });
 });
 
 route.get("/team/commissions", async (c) => {
@@ -242,11 +244,14 @@ route.get("/team/tree", async (c) => {
   const depth = Math.min(Number(c.req.query("depth") ?? 10), 10);
   const me = await c.env.DB.prepare(`SELECT path FROM referral_relations WHERE user_id=?`).bind(userId).first<any>();
   if (!me?.path) return c.json({ tree: [] });
-  return c.json({ tree: await c.env.DB.prepare(`SELECT user_id, depth FROM referral_relations WHERE path LIKE ? AND depth <= ? ORDER BY depth`).bind(`${me.path}/%`, depth).all() });
+  const rows = await c.env.DB.prepare(`SELECT user_id, depth FROM referral_relations WHERE path LIKE ? AND depth <= ? ORDER BY depth`).bind(`${me.path}/%`, depth).all();
+  return c.json({ tree: rows.results });
 });
 
 route.get("/ledger/drama", async (c) => {
   const userId = (c as any).get("userId") as string;
   if (!userId) return USER_ERR(c);
-  return c.json({ ledger: await c.env.DB.prepare(`SELECT * FROM drama_ledger WHERE user_id=? ORDER BY id DESC LIMIT 100`).bind(userId).all() });
+  // 修复(2026-08-31)：.all() 返回 D1Result 包装（同 audit-logs bug⑥）
+  const rows = await c.env.DB.prepare(`SELECT * FROM drama_ledger WHERE user_id=? ORDER BY id DESC LIMIT 100`).bind(userId).all();
+  return c.json({ ledger: rows.results });
 });
